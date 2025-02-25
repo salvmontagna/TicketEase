@@ -1,19 +1,109 @@
 package org.unict.dieei;
 
-// Press Shift twice to open the Search Everywhere dialog and type `show whitespaces`,
-// then press Enter. You can now see whitespace characters in your code.
+import org.unict.dieei.dto.User;
+import org.unict.dieei.persistence.UserDAO;
+
+import java.util.Scanner;
+
 public class TicketEase {
+
+    private static final Scanner scanner = new Scanner(System.in);
+
     public static void main(String[] args) {
-        // Press Alt+Invio with your caret at the highlighted text to see how
-        // IntelliJ IDEA suggests fixing it.
-        System.out.printf("Hello and welcome!");
+        while (true) {
+            System.out.println("\n===== TicketEase - Sistema di Ticketing =====");
+            System.out.println("1. Login");
+            System.out.println("2. Registrazione");
+            System.out.println("0. Esci");
+            System.out.print("Scelta: ");
 
-        // Press Maiusc+F10 or click the green arrow button in the gutter to run the code.
-        for (int i = 1; i <= 5; i++) {
+            int scelta = scanner.nextInt();
+            scanner.nextLine();
 
-            // Press Maiusc+F9 to start debugging your code. We have set one breakpoint
-            // for you, but you can always add more by pressing Ctrl+F8.
-            System.out.println("i = " + i);
+            switch (scelta) {
+                case 1:
+                    login();
+                    break;
+                case 2:
+                    registerUser();
+                    break;
+                case 0:
+                    System.out.println("Chiusura del sistema...");
+                    System.exit(0);
+                    break;
+                default:
+                    System.out.println("Opzione non valida.");
+            }
         }
     }
+
+    private static void login() {
+        System.out.print("\nInserisci email: ");
+        String email = scanner.nextLine();
+        System.out.print("Inserisci password: ");
+        String password = scanner.nextLine();
+
+        User user = UserDAO.loginUser(email, password);
+        if (user != null) {
+            System.out.println("\nLogin riuscito! Benvenuto, " + user.getName());
+            switch (user.getRole()) {
+                case 0:
+                    break;
+                case 1:
+                    break;
+                case 2:
+                    clientMenu(user);
+                    break;
+                default:
+                    System.out.println("Ruolo non riconosciuto.");
+            }
+        } else {
+            System.out.println("Credenziali errate.");
+        }
+    }
+
+    private static void registerUser() {
+        System.out.print("\nInserisci nome: ");
+        String name = scanner.nextLine();
+        System.out.print("Inserisci email: ");
+        String email = scanner.nextLine();
+        System.out.print("Inserisci password: ");
+        String password = scanner.nextLine();
+
+        System.out.println("Seleziona ruolo: 0 = Amministratore, 1 = Tecnico IT, 2 = Cliente");
+        int role = scanner.nextInt();
+        scanner.nextLine();
+
+        User user = UserDAO.registerUser(name, email, password, role);
+        if (user != null) {
+            System.out.println("Registrazione avvenuta con successo!");
+        } else {
+            System.out.println("Errore durante la registrazione.");
+        }
+    }
+
+    private static void clientMenu(User user) {
+        while (true) {
+            System.out.println("\n===== Menu Cliente =====");
+            System.out.println("1. Crea un nuovo ticket");
+            System.out.println("2. Visualizza i ticket");
+            System.out.println("0. Logout");
+            System.out.print("Scelta: ");
+
+            int scelta = scanner.nextInt();
+            scanner.nextLine();
+
+            switch (scelta) {
+                case 1:
+                    break;
+                case 2:
+                    break;
+                case 0:
+                    return;
+                default:
+                    System.out.println("Opzione non valida.");
+            }
+        }
+    }
+
 }
