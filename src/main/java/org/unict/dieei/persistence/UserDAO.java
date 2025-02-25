@@ -9,8 +9,40 @@ import java.util.List;
 
 public class UserDAO {
 
-    // **Metodo per registrare un nuovo utente**
-    public static User registerUser(String name, String email, String password, int role) {
+    public static User registerUser(String name, String email, String password, int role, String taxCode, String secretKey) {
+
+        // Se l'utente vuole registrarsi come Cliente, bypassa il controllo
+        if (role == 2)
+            return insertUser(name, email, password, role);
+
+        // Verifica se il tax_code e la secret_key sono presenti nella tabella authorizations
+        if (!isAuthorized(taxCode, secretKey, role)) {
+            System.out.println("Errore: Il codice fiscale e/o la chiave segreta non sono validi per il ruolo selezionato.");
+            return null;
+        }
+
+        // Se la verifica è superata, registra l'utente con il ruolo selezionato
+        return insertUser(name, email, password, role);
+    }
+
+    // **Metodo per verificare se il codice fiscale e la secret_key sono validi**
+    private static boolean isAuthorized(String taxCode, String secretKey, int role) {
+        String sql = "SELECT * FROM authorizations WHERE tax_code = ? AND secret_key = ? AND role = ?";
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setString(1, taxCode);
+            pstmt.setString(2, secretKey);
+            pstmt.setInt(3, role);
+            ResultSet rs = pstmt.executeQuery();
+            return rs.next(); // Se esiste un record, la registrazione è autorizzata
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return false;
+    }
+
+    // **Metodo per inserire un utente nel database**
+    private static User insertUser(String name, String email, String password, int role) {
         String sql = "INSERT INTO users (name, email, password, role) VALUES (?, ?, ?, ?) RETURNING id";
         try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
@@ -21,7 +53,7 @@ public class UserDAO {
             ResultSet rs = pstmt.executeQuery();
             if (rs.next()) {
                 int id = rs.getInt("id");
-                System.out.println("Utente registrato con ID: " + id);
+                System.out.println("Utente registrato con ID: " + id + " e ruolo " + role);
                 return new User(id, name, email, password, role);
             }
         } catch (SQLException e) {

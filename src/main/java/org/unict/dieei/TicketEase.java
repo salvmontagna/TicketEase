@@ -74,7 +74,18 @@ public class TicketEase {
         int role = scanner.nextInt();
         scanner.nextLine();
 
-        User user = UserDAO.registerUser(name, email, password, role);
+        String taxCode = null;
+        String secretKey = null;
+
+        // Se il ruolo è Admin o Tecnico IT, chiedi il codice fiscale e la secret key
+        if (role == 0 || role == 1) {
+            System.out.print("Inserisci il codice fiscale: ");
+            taxCode = scanner.nextLine();
+            System.out.print("Inserisci la secret key: ");
+            secretKey = scanner.nextLine();
+        }
+
+        User user = UserDAO.registerUser(name, email, password, role, taxCode, secretKey);
         if (user != null) {
             System.out.println("Registrazione avvenuta con successo!");
         } else {
@@ -105,5 +116,4 @@ public class TicketEase {
             }
         }
     }
-
 }
