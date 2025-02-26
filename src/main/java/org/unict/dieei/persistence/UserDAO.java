@@ -43,7 +43,7 @@ public class UserDAO {
     }
 
     // **Metodo per inserire un utente nel database**
-    public static User insertUser(String name, String email, String password, int role) {
+    private static User insertUser(String name, String email, String password, int role) {
 
         // Verifica se è già registrato un utente con email o nome inseriti
         if (emailExists(email)) {
