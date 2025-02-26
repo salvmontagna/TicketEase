@@ -1,8 +1,11 @@
 package org.unict.dieei;
 
+import org.unict.dieei.dto.Ticket;
 import org.unict.dieei.dto.User;
+import org.unict.dieei.persistence.TicketDAO;
 import org.unict.dieei.persistence.UserDAO;
 
+import java.util.List;
 import java.util.Scanner;
 
 public class TicketEase {
@@ -20,19 +23,24 @@ public class TicketEase {
             int scelta = scanner.nextInt();
             scanner.nextLine();
 
-            switch (scelta) {
-                case 1:
-                    login();
-                    break;
-                case 2:
-                    registerUser();
-                    break;
-                case 0:
-                    System.out.println("Chiusura del sistema...");
-                    System.exit(0);
-                    break;
-                default:
-                    System.out.println("Opzione non valida.");
+            try{
+                switch (scelta) {
+                    case 1:
+                        login();
+                        break;
+                    case 2:
+                        registerUser();
+                        break;
+                    case 0:
+                        System.out.println("Chiusura del sistema...");
+                        System.exit(0);
+                        break;
+                    default:
+                        System.out.println("Opzione non valida.");
+                }
+            } catch (Exception e) {
+                System.out.println("Inserisci uno dei numeri elencati qui sopra.");
+                scanner.nextLine();
             }
         }
     }
@@ -106,8 +114,10 @@ public class TicketEase {
 
             switch (scelta) {
                 case 1:
+                    createTicket(user);
                     break;
                 case 2:
+                    viewTickets(user);
                     break;
                 case 0:
                     return;
@@ -116,4 +126,36 @@ public class TicketEase {
             }
         }
     }
+
+    private static void createTicket(User user) {
+        System.out.print("Inserisci il titolo del ticket: ");
+        String title = scanner.nextLine();
+        System.out.print("Inserisci la descrizione del problema: ");
+        String description = scanner.nextLine();
+
+        Ticket ticket = TicketDAO.createTicket(title, description, user.getId());
+        if (ticket != null) {
+            System.out.println("Ticket " + ticket.getId() + " creato con successo!");
+        } else {
+            System.out.println("Errore nella creazione del ticket.");
+        }
+    }
+
+    private static void viewTickets(User user) {
+        System.out.println("\n1. Visualizza tutti i ticket");
+        System.out.println("2. Visualizza solo i ticket aperti");
+        System.out.println("3. Visualizza solo i ticket chiusi");
+        System.out.print("Scelta: ");
+
+        int filtro = scanner.nextInt();
+        scanner.nextLine();
+
+        List<Ticket> tickets = TicketDAO.getTicketsByUser(user.getId(), filtro);
+        for (int i = 0; i < tickets.size(); i++) {
+            System.out.println("=========== Ticket n. " + (i + 1) + " ===========");
+            System.out.println(tickets.get(i));
+            System.out.println("==================================");
+        }
+    }
+
 }

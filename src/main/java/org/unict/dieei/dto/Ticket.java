@@ -18,6 +18,15 @@ public class Ticket {
         this.creationDate = creationDate;
         this.createdUserId = createdUserId;
     }
+    @Override
+    public String toString() {
+        return "Ticket ID: " + id + "\n"
+                + "Titolo: " + title + "\n"
+                + "Descrizione: " + description + "\n"
+                + "Stato: " + status + "\n"
+                + "Data Creazione: " + creationDate + "\n"
+                + "Creato da User ID: " + createdUserId ;
+    }
 
     public Ticket(String title, String description, int createdUserId) {
         this(0, title, description, "open", LocalDateTime.now(), createdUserId);
