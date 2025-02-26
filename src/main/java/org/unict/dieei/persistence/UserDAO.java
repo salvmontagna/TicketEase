@@ -3,6 +3,7 @@ package org.unict.dieei.persistence;
 import org.unict.dieei.configurations.DatabaseConnection;
 import org.unict.dieei.dto.User;
 
+import javax.xml.crypto.Data;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
@@ -27,7 +28,7 @@ public class UserDAO {
 
     // **Metodo per verificare se il codice fiscale e la secret_key sono validi**
     private static boolean isAuthorized(String taxCode, String secretKey, int role) {
-        String sql = "SELECT * FROM authorizations WHERE tax_code = ? AND secret_key = ? AND role = ?";
+        String sql = "SELECT 1 FROM authorizations WHERE LOWER(tax_code) = LOWER(?) AND LOWER(secret_key) = LOWER(?) AND role = ?";
         try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
             pstmt.setString(1, taxCode);
@@ -42,7 +43,18 @@ public class UserDAO {
     }
 
     // **Metodo per inserire un utente nel database**
-    private static User insertUser(String name, String email, String password, int role) {
+    public static User insertUser(String name, String email, String password, int role) {
+
+        // Verifica se è già registrato un utente con email o nome inseriti
+        if (emailExists(email)) {
+            System.out.println("Errore: L'email \"" + email + "\" è già registrata. Scegli un'altra email.");
+            return null;
+        }
+        else if (nameExists(name)) {
+            System.out.println("Errore: Il nome \"" + name + "\" è già registrato. Scegli un altro nome.");
+            return null;
+        }
+
         String sql = "INSERT INTO users (name, email, password, role) VALUES (?, ?, ?, ?) RETURNING id";
         try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
@@ -60,6 +72,33 @@ public class UserDAO {
             e.printStackTrace();
         }
         return null;
+    }
+
+    // **Metodo per verificare se un'email esiste già nel database**
+    private static boolean emailExists(String email) {
+        String sql = "SELECT 1 FROM users WHERE email = ?";
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setString(1, email);
+            ResultSet rs = pstmt.executeQuery();
+            return rs.next();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return false;
+    }
+
+    private static boolean nameExists(String email) {
+        String sql = "SELECT 1 FROM users WHERE name = ?";
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setString(1, email);
+            ResultSet rs = pstmt.executeQuery();
+            return rs.next();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return false;
     }
 
     // **Metodo per autenticare un utente (Login)**
