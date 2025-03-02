@@ -34,7 +34,6 @@ public class TicketEase {
                     case 0:
                         System.out.println("Chiusura del sistema...");
                         System.exit(0);
-                        break;
                     default:
                         System.out.println("Opzione non valida.");
                 }
@@ -56,6 +55,7 @@ public class TicketEase {
             System.out.println("\nLogin riuscito! Benvenuto, " + user.getName());
             switch (user.getRole()) {
                 case 0:
+                    adminMenu(user);
                     break;
                 case 1:
                     break;
@@ -156,6 +156,75 @@ public class TicketEase {
             System.out.println(tickets.get(i));
             System.out.println("==================================");
         }
+    }
+
+    private static void adminMenu(User user) {
+        while (true) {
+            System.out.println("\n===== Menu Amministratore =====");
+            System.out.println("1. Assegna un ticket");
+            System.out.println("2. Crea un ticket e assegnalo");
+            System.out.println("0. Logout");
+            System.out.print("Scelta: ");
+
+            int scelta = scanner.nextInt();
+            scanner.nextLine();
+
+            switch (scelta) {
+                case 1:
+                    assignTicket(user);
+                    break;
+                case 2:
+                    createAndAssignTicket(user);
+                    break;
+                case 0:
+                    return;
+                default:
+                    System.out.println("Opzione non valida.");
+            }
+        }
+    }
+    private static void assignTicket(User admin) {
+        System.out.print("Inserisci l'ID del ticket da assegnare: ");
+        int ticketId = scanner.nextInt();
+        scanner.nextLine();
+
+        List<User> technicians = UserDAO.getAllTechnicians();
+        System.out.println("Seleziona un tecnico IT:");
+        for (User tech : technicians) {
+            System.out.println(tech.getId() + ". " + tech.getName());
+        }
+        System.out.print("ID tecnico: ");
+        int techId = scanner.nextInt();
+        scanner.nextLine();
+
+        TicketDAO.assignTicket(ticketId, techId, admin.getId());
+    }
+
+    private static void createAndAssignTicket(User admin) {
+        System.out.print("Inserisci il titolo del ticket: ");
+        String title = scanner.nextLine();
+        System.out.print("Inserisci la descrizione del problema: ");
+        String description = scanner.nextLine();
+
+        System.out.println("\nSeleziona un cliente per cui creare il ticket:");
+        List<User> clients = UserDAO.getAllCustomers(); // Ottieni tutti gli utenti, filtreremo i clienti
+        for (User client : clients) {
+            System.out.println(client.getId() + ". " + client.getName());
+        }
+        System.out.print("ID Cliente: ");
+        int clientId = scanner.nextInt();
+        scanner.nextLine();
+
+        System.out.println("\nSeleziona un tecnico IT per assegnare il ticket:");
+        List<User> technicians = UserDAO.getAllTechnicians();
+        for (User tech : technicians) {
+            System.out.println(tech.getId() + ". " + tech.getName());
+        }
+        System.out.print("ID Tecnico: ");
+        int technicianId = scanner.nextInt();
+        scanner.nextLine();
+
+        TicketDAO.createAndAssignTicket(title, description, clientId, technicianId, admin.getId());
     }
 
 }

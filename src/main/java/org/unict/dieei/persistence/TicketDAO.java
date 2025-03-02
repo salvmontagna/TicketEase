@@ -1,7 +1,10 @@
 package org.unict.dieei.persistence;
 
 import org.unict.dieei.configurations.DatabaseConnection;
+import org.unict.dieei.observer.NotificationManager;
 import org.unict.dieei.dto.Ticket;
+import org.unict.dieei.observer.Observer;
+import org.unict.dieei.observer.TechnicianObserver;
 
 import java.sql.*;
 import java.util.ArrayList;
@@ -30,7 +33,7 @@ public class TicketDAO {
     public static void createAndAssignTicket(String title, String description, int clientId, int technicianId, int adminId) {
         Ticket ticket = createTicket(title, description, clientId); // Il ticket è registrato per il CLIENTE
         if (ticket != null) {
-            TicketStatusDAO.assignTicket(ticket.getId(), technicianId, adminId); // L'amministratore assegna il ticket al tecnico
+            assignTicket(ticket.getId(), technicianId, adminId); // L'amministratore assegna il ticket al tecnico
             System.out.println("Ticket " + ticket.getId() + " creato per il cliente " + clientId + " e assegnato al tecnico " + technicianId);
         } else {
             System.out.println("Errore nella creazione del ticket.");
@@ -76,40 +79,28 @@ public class TicketDAO {
         return tickets;
     }
 
-    // **Recupera tutti i ticket assegnati a un tecnico IT con stato aggiornato**
-    public static List<Ticket> getAssignedTickets(int technicianId) {
-        String sql = """
-            SELECT t.id, t.title, t.description,
-                   COALESCE(ts.status, t.status) AS current_status,
-                   t.creation_date, t.created_user_id
-            FROM tickets t
-            LEFT JOIN (
-                SELECT DISTINCT ON (ticket_id) ticket_id, status
-                FROM ticket_status
-                ORDER BY ticket_id, update_date DESC
-            ) ts ON t.id = ts.ticket_id
-            WHERE t.assigned_user_id = ? AND COALESCE(ts.status, t.status) != 'closed'
-            """;
+    // **Assegna un ticket a un tecnico IT**
+    public static void assignTicket(int ticketId, int technicianId, int adminId) {
+        String sqlUpdate = "UPDATE tickets SET assigned_user_id = ? WHERE id = ?";
 
-        List<Ticket> tickets = new ArrayList<>();
-        try (Connection conn = DatabaseConnection.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
-            pstmt.setInt(1, technicianId);
-            ResultSet rs = pstmt.executeQuery();
-            while (rs.next()) {
-                tickets.add(new Ticket(
-                        rs.getInt("id"),
-                        rs.getString("title"),
-                        rs.getString("description"),
-                        rs.getString("current_status"), // Usa lo stato più recente
-                        rs.getTimestamp("creation_date").toLocalDateTime(),
-                        rs.getInt("created_user_id")
-                ));
+        try (Connection conn = DatabaseConnection.getConnection()) {
+            // Assegna il ticket al tecnico IT
+            try (PreparedStatement pstmtUpdate = conn.prepareStatement(sqlUpdate)) {
+                pstmtUpdate.setInt(1, technicianId);
+                pstmtUpdate.setInt(2, ticketId);
+                pstmtUpdate.executeUpdate();
             }
+
+            // Attiva la notifica al tecnico
+            Observer technicianObserver = new TechnicianObserver(technicianId, ticketId);
+            NotificationManager.addObserver(technicianObserver);
+            NotificationManager.notifyObservers("Ti è stato assegnato un nuovo ticket con ID " + ticketId);
+            NotificationManager.removeObserver(technicianObserver);
+
+            System.out.println("Ticket " + ticketId + " assegnato al tecnico " + technicianId);
         } catch (SQLException e) {
             e.printStackTrace();
         }
-        return tickets;
     }
 
 }
