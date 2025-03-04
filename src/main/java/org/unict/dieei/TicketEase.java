@@ -3,6 +3,7 @@ package org.unict.dieei;
 import org.unict.dieei.dto.Ticket;
 import org.unict.dieei.dto.User;
 import org.unict.dieei.persistence.TicketDAO;
+import org.unict.dieei.persistence.TicketStatusDAO;
 import org.unict.dieei.persistence.UserDAO;
 
 import java.util.List;
@@ -58,6 +59,7 @@ public class TicketEase {
                     adminMenu(user);
                     break;
                 case 1:
+                    technicianMenu(user);
                     break;
                 case 2:
                     clientMenu(user);
@@ -226,5 +228,45 @@ public class TicketEase {
 
         TicketDAO.createAndAssignTicket(title, description, clientId, technicianId, admin.getId());
     }
+
+    private static void technicianMenu(User user) {
+        while (true) {
+            System.out.println("\n===== Menu Tecnico IT =====");
+            System.out.println("1. Visualizza i ticket assegnati");
+            System.out.println("2. Aggiorna stato di un ticket");
+            System.out.println("0. Logout");
+            System.out.print("Scelta: ");
+
+            int scelta = scanner.nextInt();
+            scanner.nextLine();
+
+            switch (scelta) {
+                case 1:
+                    List<Ticket> tickets = TicketDAO.getAssignedTickets(user.getId());
+                    for (Ticket ticket : tickets) {
+                        System.out.println(ticket);
+                    }
+                    break;
+                case 2:
+                    updateTicketStatus(user);
+                    break;
+                case 0:
+                    return;
+                default:
+                    System.out.println("Opzione non valida.");
+            }
+        }
+    }
+
+    private static void updateTicketStatus(User user) {
+        System.out.print("Inserisci l'ID del ticket: ");
+        int ticketId = scanner.nextInt();
+        scanner.nextLine();
+        System.out.print("Nuovo stato (open, in_progress, closed): ");
+        String status = scanner.nextLine();
+
+        TicketStatusDAO.updateTicketStatus(ticketId, status, user.getId());
+    }
+
 
 }

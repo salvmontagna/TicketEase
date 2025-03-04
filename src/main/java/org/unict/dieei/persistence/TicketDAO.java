@@ -103,4 +103,40 @@ public class TicketDAO {
         }
     }
 
+    // **Recupera tutti i ticket assegnati a un tecnico IT con stato aggiornato**
+    public static List<Ticket> getAssignedTickets(int technicianId) {
+        String sql = """
+            SELECT t.id, t.title, t.description,
+                   COALESCE(ts.status, t.status) AS current_status,
+                   t.creation_date, t.created_user_id
+            FROM tickets t
+            LEFT JOIN (
+                SELECT DISTINCT ON (ticket_id) ticket_id, status
+                FROM ticket_status
+                ORDER BY ticket_id, update_date DESC
+            ) ts ON t.id = ts.ticket_id
+            WHERE t.assigned_user_id = ? AND COALESCE(ts.status, t.status) != 'closed'
+            """;
+
+        List<Ticket> tickets = new ArrayList<>();
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setInt(1, technicianId);
+            ResultSet rs = pstmt.executeQuery();
+            while (rs.next()) {
+                tickets.add(new Ticket(
+                        rs.getInt("id"),
+                        rs.getString("title"),
+                        rs.getString("description"),
+                        rs.getString("current_status"), // Usa lo stato più recente
+                        rs.getTimestamp("creation_date").toLocalDateTime(),
+                        rs.getInt("created_user_id")
+                ));
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return tickets;
+    }
+
 }
