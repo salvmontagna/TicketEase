@@ -1,5 +1,6 @@
 package org.unict.dieei;
 
+import org.unict.dieei.dto.Products;
 import org.unict.dieei.dto.Ticket;
 import org.unict.dieei.dto.User;
 import org.unict.dieei.persistence.TicketDAO;
@@ -73,8 +74,8 @@ public class TicketEase {
     }
 
     private static void registerUser() {
-        System.out.print("\nInserisci nome: ");
-        String name = scanner.nextLine();
+        System.out.print("\nInserisci nome utente: ");
+        String username = scanner.nextLine();
         System.out.print("Inserisci email: ");
         String email = scanner.nextLine();
         System.out.print("Inserisci password: ");
@@ -95,7 +96,7 @@ public class TicketEase {
             secretKey = scanner.nextLine();
         }
 
-        User user = UserDAO.registerUser(name, email, password, role, taxCode, secretKey);
+        User user = UserDAO.registerUser(username, email, password, role, taxCode, secretKey);
         if (user != null) {
             System.out.println("Registrazione avvenuta con successo!");
         } else {
@@ -130,16 +131,39 @@ public class TicketEase {
     }
 
     private static void createTicket(User user) {
+
+        showProducts();
+        System.out.println("Digitare il numero del prodotto in cui si è riscontrato il problema: ");
+        int productId = scanner.nextInt();
+        scanner.nextLine();
+
         System.out.print("Inserisci il titolo del ticket: ");
         String title = scanner.nextLine();
         System.out.print("Inserisci la descrizione del problema: ");
         String description = scanner.nextLine();
 
-        Ticket ticket = TicketDAO.createTicket(title, description, user.getId());
+        Ticket ticket = TicketDAO.createTicket(title, description, user.getId(), productId);
         if (ticket != null) {
             System.out.println("Ticket " + ticket.getId() + " creato con successo!");
         } else {
             System.out.println("Errore nella creazione del ticket.");
+        }
+    }
+
+    private static void showProducts() {
+
+        List<Products> products = TicketDAO.getProducts();
+
+        for (Products product : products) {
+            System.out.println(product);
+        }
+
+    }
+
+    public static void showAllOpenedTickets() {
+        List<Ticket> tickets = TicketDAO.getAllOpenedTickets();
+        for (Ticket ticket : tickets) {
+            System.out.println(ticket);
         }
     }
 
@@ -185,7 +209,10 @@ public class TicketEase {
             }
         }
     }
+
     private static void assignTicket(User admin) {
+
+        showAllOpenedTickets();
         System.out.print("Inserisci l'ID del ticket da assegnare: ");
         int ticketId = scanner.nextInt();
         scanner.nextLine();
@@ -202,7 +229,15 @@ public class TicketEase {
         TicketDAO.assignTicket(ticketId, techId, admin.getId());
     }
 
+
+
     private static void createAndAssignTicket(User admin) {
+
+        showProducts();
+        System.out.println("Digitare il numero del prodotto in cui si è riscontrato il problema: ");
+        int productId = scanner.nextInt();
+        scanner.nextLine();
+
         System.out.print("Inserisci il titolo del ticket: ");
         String title = scanner.nextLine();
         System.out.print("Inserisci la descrizione del problema: ");
@@ -226,7 +261,7 @@ public class TicketEase {
         int technicianId = scanner.nextInt();
         scanner.nextLine();
 
-        TicketDAO.createAndAssignTicket(title, description, clientId, technicianId, admin.getId());
+        TicketDAO.createAndAssignTicket(title, description, clientId, technicianId, admin.getId(), productId);
     }
 
     private static void technicianMenu(User user) {
@@ -242,10 +277,7 @@ public class TicketEase {
 
             switch (scelta) {
                 case 1:
-                    List<Ticket> tickets = TicketDAO.getAssignedTickets(user.getId());
-                    for (Ticket ticket : tickets) {
-                        System.out.println(ticket);
-                    }
+                    showAssignedTickets(user.getId());
                     break;
                 case 2:
                     updateTicketStatus(user);
@@ -259,13 +291,45 @@ public class TicketEase {
     }
 
     private static void updateTicketStatus(User user) {
-        System.out.print("Inserisci l'ID del ticket: ");
+
+        showAssignedTickets(user.getId());
+
+        System.out.print("Inserisci l'ID del ticket da aggiornare: ");
         int ticketId = scanner.nextInt();
         scanner.nextLine();
-        System.out.print("Nuovo stato (open, in_progress, closed): ");
-        String status = scanner.nextLine();
+        System.out.print("ID del nuovo stato (1. Aperto, 2. In corso, 3. Chiuso): ");
+        int statusNumber = scanner.nextInt();
+        scanner.nextLine();
+
+        String status = getRealStatus(statusNumber);
 
         TicketStatusDAO.updateTicketStatus(ticketId, status, user.getId());
+    }
+
+    private static void showAssignedTickets(int technicianId) {
+        List<Ticket> tickets = TicketDAO.getAssignedTickets(technicianId);
+        for (Ticket ticket : tickets) {
+            System.out.println(ticket);
+        }
+    }
+
+    private static String getRealStatus(int statusNumber){
+        String status = "";
+        switch (statusNumber) {
+            case 1:
+                status = "open";
+                break;
+            case 2:
+                status = "in_progress";
+                break;
+            case 3:
+                status = "closed";
+                break;
+            default:
+                System.out.println("Stato non riconosciuto.");
+        }
+
+        return status;
     }
 
 

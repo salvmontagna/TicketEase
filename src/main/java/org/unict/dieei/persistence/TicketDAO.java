@@ -1,6 +1,7 @@
 package org.unict.dieei.persistence;
 
 import org.unict.dieei.configurations.DatabaseConnection;
+import org.unict.dieei.dto.Products;
 import org.unict.dieei.observer.NotificationManager;
 import org.unict.dieei.dto.Ticket;
 import org.unict.dieei.observer.Observer;
@@ -11,13 +12,14 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class TicketDAO {
-    public static Ticket createTicket(String title, String description, int createdUserId) {
-        String sql = "INSERT INTO tickets (title, description, created_user_id) VALUES (?, ?, ?) RETURNING id";
+    public static Ticket createTicket(String title, String description, int createdUserId, int productId) {
+        String sql = "INSERT INTO tickets (title, description, created_user_id, product_id) VALUES (?, ?, ?, ?) RETURNING id";
         try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
             pstmt.setString(1, title);
             pstmt.setString(2, description);
             pstmt.setInt(3, createdUserId);
+            pstmt.setInt(4, productId);
             ResultSet rs = pstmt.executeQuery();
             if (rs.next()) {
                 int id = rs.getInt("id");
@@ -30,8 +32,8 @@ public class TicketDAO {
         return null;
     }
     // **Metodo per l'amministratore per creare e assegnare un ticket direttamente a un tecnico**
-    public static void createAndAssignTicket(String title, String description, int clientId, int technicianId, int adminId) {
-        Ticket ticket = createTicket(title, description, clientId); // Il ticket è registrato per il CLIENTE
+    public static void createAndAssignTicket(String title, String description, int clientId, int technicianId, int adminId, int productId) {
+        Ticket ticket = createTicket(title, description, clientId, productId); // Il ticket è registrato per il CLIENTE
         if (ticket != null) {
             assignTicket(ticket.getId(), technicianId, adminId); // L'amministratore assegna il ticket al tecnico
             System.out.println("Ticket " + ticket.getId() + " creato per il cliente " + clientId + " e assegnato al tecnico " + technicianId);
@@ -137,6 +139,58 @@ public class TicketDAO {
             e.printStackTrace();
         }
         return tickets;
+    }
+
+    public static List<Ticket> getAllOpenedTickets(){
+        String sql = """
+            SELECT t.id, t.title, t.description,
+                   COALESCE(ts.status, t.status) AS current_status,
+                   t.creation_date, t.created_user_id
+            FROM tickets t
+            LEFT JOIN (
+                SELECT DISTINCT ON (ticket_id) ticket_id, status
+                FROM ticket_status
+                ORDER BY ticket_id, update_date DESC
+            ) ts ON t.id = ts.ticket_id
+            WHERE COALESCE(ts.status, t.status) != 'closed'
+            """;
+
+        List<Ticket> tickets = new ArrayList<>();
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            ResultSet rs = pstmt.executeQuery();
+            while (rs.next()) {
+                tickets.add(new Ticket(
+                        rs.getInt("id"),
+                        rs.getString("title"),
+                        rs.getString("description"),
+                        rs.getString("current_status"), // Usa lo stato più recente
+                        rs.getTimestamp("creation_date").toLocalDateTime(),
+                        rs.getInt("created_user_id")
+                ));
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return tickets;
+    }
+
+    public static List<Products> getProducts() {
+        String sql = "SELECT * FROM products";
+        List<Products> products = new ArrayList<>();
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            ResultSet rs = pstmt.executeQuery();
+            while (rs.next()) {
+                products.add(new Products(
+                        rs.getInt("id"),
+                        rs.getString("product_name")
+                ));
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return products;
     }
 
 }

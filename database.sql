@@ -14,8 +14,10 @@ CREATE TABLE IF NOT EXISTS tickets (
     creation_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     created_user_id INTEGER NOT NULL,
     assigned_user_id INTEGER DEFAULT NULL,
+    product_id INTEGER NOT NULL,
     FOREIGN KEY (created_user_id) REFERENCES users(id) ON DELETE CASCADE,
     FOREIGN KEY (assigned_user_id) REFERENCES users(id) ON DELETE SET NULL
+    FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE SET NULL
 );
 
 CREATE TABLE IF NOT EXISTS ticket_status (
@@ -43,4 +45,9 @@ CREATE TABLE IF NOT EXISTS authorizations (
     tax_code VARCHAR(16) UNIQUE NOT NULL,
     secret_key VARCHAR(255) NOT NULL,
     role INTEGER NOT NULL CHECK(role IN (0,1))
+);
+
+CREATE TABLE IF NOT EXISTS products (
+    id SERIAL PRIMARY KEY,
+    product_name VARCHAR(30) UNIQUE NOT NULL
 );

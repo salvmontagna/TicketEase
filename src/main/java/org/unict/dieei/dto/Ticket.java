@@ -18,6 +18,7 @@ public class Ticket {
         this.creationDate = creationDate;
         this.createdUserId = createdUserId;
     }
+    /*
     @Override
     public String toString() {
         return "Ticket ID: " + id + "\n"
@@ -26,6 +27,16 @@ public class Ticket {
                 + "Stato: " + status + "\n"
                 + "Data Creazione: " + creationDate + "\n"
                 + "Creato da User ID: " + createdUserId ;
+    }*/
+
+    @Override
+    public String toString() {
+        return "Ticket ID: " + id + " - "
+                + "Titolo: " + title + " - "
+                + "Descrizione: " + description + " - "
+                + "Stato: " + status + " - "
+                + "Data Creazione: " + creationDate + " - "
+                + "Creato da User ID: " + createdUserId;
     }
 
     public Ticket(String title, String description, int createdUserId) {
