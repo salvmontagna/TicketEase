@@ -1,11 +1,20 @@
 package org.unict.dieei.dto;
 
+import jakarta.persistence.*;
+
+@Entity
+@Table(name = "products")
 public class Products {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private int id;
+
+    @Column(name = "product_name", unique = true, nullable = false, length = 30)
     private String productName;
 
-    public Products(int id, String productName) {
-        this.id = id;
+    protected Products() {}
+
+    public Products(String productName) {
         this.productName = productName;
     }
 

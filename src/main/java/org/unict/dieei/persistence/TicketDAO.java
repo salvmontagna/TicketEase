@@ -1,7 +1,9 @@
 package org.unict.dieei.persistence;
 
+import jakarta.persistence.EntityManager;
 import org.unict.dieei.configurations.DatabaseConnection;
 import org.unict.dieei.dto.Products;
+import org.unict.dieei.dto.User;
 import org.unict.dieei.observer.NotificationManager;
 import org.unict.dieei.dto.Ticket;
 import org.unict.dieei.observer.Observer;
@@ -12,6 +14,33 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class TicketDAO {
+
+    private EntityManager entityManager;
+
+    public TicketDAO(EntityManager entityManager) {
+        this.entityManager = entityManager;
+    }
+
+    public void saveTicket(Ticket ticket) {
+        entityManager.getTransaction().begin();
+        entityManager.persist(ticket);
+        entityManager.getTransaction().commit();
+    }
+
+    public List<Ticket> getAllOpenedTickets() {
+        return entityManager.createQuery("SELECT t FROM Ticket t WHERE t.status != 'closed'", Ticket.class).getResultList();
+    }
+
+    public void assignTicket(int ticketId, int technicianId) {
+        entityManager.getTransaction().begin();
+        Ticket ticket = entityManager.find(Ticket.class, ticketId);
+        User technician = entityManager.find(User.class, technicianId);
+        ticket.setAssignedUser(technician);
+        entityManager.merge(ticket);
+        entityManager.getTransaction().commit();
+    }
+
+/*
     public static Ticket createTicket(String title, String description, int createdUserId, int productId) {
         String sql = "INSERT INTO tickets (title, description, created_user_id, product_id) VALUES (?, ?, ?, ?) RETURNING id";
         try (Connection conn = DatabaseConnection.getConnection();
@@ -192,5 +221,7 @@ public class TicketDAO {
         }
         return products;
     }
+
+*/
 
 }

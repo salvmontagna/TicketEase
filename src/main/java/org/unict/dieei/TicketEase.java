@@ -1,18 +1,29 @@
 package org.unict.dieei;
 
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.EntityManagerFactory;
+import jakarta.persistence.Persistence;
 import org.unict.dieei.dto.Products;
 import org.unict.dieei.dto.Ticket;
 import org.unict.dieei.dto.User;
+import org.unict.dieei.persistence.ProductsDAO;
 import org.unict.dieei.persistence.TicketDAO;
 import org.unict.dieei.persistence.TicketStatusDAO;
 import org.unict.dieei.persistence.UserDAO;
+import org.unict.dieei.service.TicketService;
+import org.unict.dieei.service.UserService;
 
 import java.util.List;
 import java.util.Scanner;
 
 public class TicketEase {
 
-    private static final Scanner scanner = new Scanner(System.in);
+    private static Scanner scanner = new Scanner(System.in);
+    private static EntityManagerFactory emf = Persistence.createEntityManagerFactory("ticket-ease");
+    private static EntityManager em = emf.createEntityManager();
+
+    private static UserService userService = new UserService(new UserDAO(em));
+    private static TicketService ticketService = new TicketService(new TicketDAO(em), new ProductsDAO(em));
 
     public static void main(String[] args) {
         while (true) {
@@ -25,23 +36,19 @@ public class TicketEase {
             int scelta = scanner.nextInt();
             scanner.nextLine();
 
-            try{
-                switch (scelta) {
-                    case 1:
-                        login();
-                        break;
-                    case 2:
-                        registerUser();
-                        break;
-                    case 0:
-                        System.out.println("Chiusura del sistema...");
-                        System.exit(0);
-                    default:
-                        System.out.println("Opzione non valida.");
-                }
-            } catch (Exception e) {
-                System.out.println("Inserisci uno dei numeri elencati qui sopra.");
-                scanner.nextLine();
+            switch (scelta) {
+                case 1:
+                    login();
+                    break;
+                case 2:
+                    registerUser();
+                    break;
+                case 0:
+                    System.out.println("Chiusura del sistema...");
+                    emf.close();
+                    System.exit(0);
+                default:
+                    System.out.println("Opzione non valida.");
             }
         }
     }
@@ -52,22 +59,10 @@ public class TicketEase {
         System.out.print("Inserisci password: ");
         String password = scanner.nextLine();
 
-        User user = UserDAO.loginUser(email, password);
+        User user = userService.login(email, password);
         if (user != null) {
             System.out.println("\nLogin riuscito! Benvenuto, " + user.getName());
-            switch (user.getRole()) {
-                case 0:
-                    adminMenu(user);
-                    break;
-                case 1:
-                    technicianMenu(user);
-                    break;
-                case 2:
-                    clientMenu(user);
-                    break;
-                default:
-                    System.out.println("Ruolo non riconosciuto.");
-            }
+            if (user.getRole() == 2) clientMenu(user);
         } else {
             System.out.println("Credenziali errate.");
         }
@@ -80,28 +75,12 @@ public class TicketEase {
         String email = scanner.nextLine();
         System.out.print("Inserisci password: ");
         String password = scanner.nextLine();
-
         System.out.println("Seleziona ruolo: 0 = Amministratore, 1 = Tecnico IT, 2 = Cliente");
         int role = scanner.nextInt();
         scanner.nextLine();
 
-        String taxCode = null;
-        String secretKey = null;
-
-        // Se il ruolo è Admin o Tecnico IT, chiedi il codice fiscale e la secret key
-        if (role == 0 || role == 1) {
-            System.out.print("Inserisci il codice fiscale: ");
-            taxCode = scanner.nextLine();
-            System.out.print("Inserisci la secret key: ");
-            secretKey = scanner.nextLine();
-        }
-
-        User user = UserDAO.registerUser(username, email, password, role, taxCode, secretKey);
-        if (user != null) {
-            System.out.println("Registrazione avvenuta con successo!");
-        } else {
-            System.out.println("Errore durante la registrazione.");
-        }
+        userService.registerUser(username, email, password, role, null, null);
+        System.out.println("Registrazione avvenuta con successo!");
     }
 
     private static void clientMenu(User user) {
@@ -117,10 +96,20 @@ public class TicketEase {
 
             switch (scelta) {
                 case 1:
-                    createTicket(user);
+                    ticketService.showProducts();
+                    System.out.println("Digitare il numero del prodotto in cui si è riscontrato il problema: ");
+                    int productId = scanner.nextInt();
+                    scanner.nextLine();
+
+                    System.out.print("Inserisci il titolo del ticket: ");
+                    String title = scanner.nextLine();
+                    System.out.print("Inserisci la descrizione del problema: ");
+                    String description = scanner.nextLine();
+                    ticketService.createTicket(title, description, user, productId);
+                    System.out.println("Ticket creato con successo!");
                     break;
                 case 2:
-                    viewTickets(user);
+                    System.out.println(ticketService.getAllOpenedTickets());
                     break;
                 case 0:
                     return;
@@ -130,44 +119,8 @@ public class TicketEase {
         }
     }
 
-    private static void createTicket(User user) {
-
-        showProducts();
-        System.out.println("Digitare il numero del prodotto in cui si è riscontrato il problema: ");
-        int productId = scanner.nextInt();
-        scanner.nextLine();
-
-        System.out.print("Inserisci il titolo del ticket: ");
-        String title = scanner.nextLine();
-        System.out.print("Inserisci la descrizione del problema: ");
-        String description = scanner.nextLine();
-
-        Ticket ticket = TicketDAO.createTicket(title, description, user.getId(), productId);
-        if (ticket != null) {
-            System.out.println("Ticket " + ticket.getId() + " creato con successo!");
-        } else {
-            System.out.println("Errore nella creazione del ticket.");
-        }
-    }
-
-    private static void showProducts() {
-
-        List<Products> products = TicketDAO.getProducts();
-
-        for (Products product : products) {
-            System.out.println(product);
-        }
-
-    }
-
-    public static void showAllOpenedTickets() {
-        List<Ticket> tickets = TicketDAO.getAllOpenedTickets();
-        for (Ticket ticket : tickets) {
-            System.out.println(ticket);
-        }
-    }
-
-    private static void viewTickets(User user) {
+/*
+* private static void viewTickets(User user) {
         System.out.println("\n1. Visualizza tutti i ticket");
         System.out.println("2. Visualizza solo i ticket aperti");
         System.out.println("3. Visualizza solo i ticket chiusi");
@@ -331,6 +284,7 @@ public class TicketEase {
 
         return status;
     }
-
+*/
 
 }
+

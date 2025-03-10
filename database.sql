@@ -16,7 +16,7 @@ CREATE TABLE IF NOT EXISTS tickets (
     assigned_user_id INTEGER DEFAULT NULL,
     product_id INTEGER NOT NULL,
     FOREIGN KEY (created_user_id) REFERENCES users(id) ON DELETE CASCADE,
-    FOREIGN KEY (assigned_user_id) REFERENCES users(id) ON DELETE SET NULL
+    FOREIGN KEY (assigned_user_id) REFERENCES users(id) ON DELETE SET NULL,
     FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE SET NULL
 );
 
