@@ -1,34 +1,30 @@
 package org.unict.dieei.persistence;
 
 import jakarta.persistence.EntityManager;
-import org.unict.dieei.configurations.DatabaseConnection;
-import org.unict.dieei.dto.Products;
-import org.unict.dieei.dto.User;
-import org.unict.dieei.observer.NotificationManager;
-import org.unict.dieei.dto.Ticket;
-import org.unict.dieei.observer.Observer;
-import org.unict.dieei.observer.TechnicianObserver;
+import jakarta.persistence.TypedQuery;
+import org.unict.dieei.domain.User;
+import org.unict.dieei.domain.Ticket;
 
-import java.sql.*;
-import java.util.ArrayList;
 import java.util.List;
 
 public class TicketDAO {
-
-    private EntityManager entityManager;
+    private static EntityManager entityManager;
 
     public TicketDAO(EntityManager entityManager) {
         this.entityManager = entityManager;
     }
 
-    public void saveTicket(Ticket ticket) {
+    public Ticket saveTicket(Ticket ticket) {
         entityManager.getTransaction().begin();
         entityManager.persist(ticket);
         entityManager.getTransaction().commit();
+        return ticket;
     }
 
     public List<Ticket> getAllOpenedTickets() {
-        return entityManager.createQuery("SELECT t FROM Ticket t WHERE t.status != 'closed'", Ticket.class).getResultList();
+        TypedQuery<Ticket> query = entityManager.createQuery(
+                "SELECT t FROM Ticket t WHERE t.status != 'closed'", Ticket.class);
+        return query.getResultList();
     }
 
     public void assignTicket(int ticketId, int technicianId) {
@@ -40,188 +36,47 @@ public class TicketDAO {
         entityManager.getTransaction().commit();
     }
 
-/*
-    public static Ticket createTicket(String title, String description, int createdUserId, int productId) {
-        String sql = "INSERT INTO tickets (title, description, created_user_id, product_id) VALUES (?, ?, ?, ?) RETURNING id";
-        try (Connection conn = DatabaseConnection.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
-            pstmt.setString(1, title);
-            pstmt.setString(2, description);
-            pstmt.setInt(3, createdUserId);
-            pstmt.setInt(4, productId);
-            ResultSet rs = pstmt.executeQuery();
-            if (rs.next()) {
-                int id = rs.getInt("id");
-                System.out.println("Ticket creato con ID: " + id);
-                return new Ticket(id, title, description, "open", java.time.LocalDateTime.now(), createdUserId);
-            }
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-        return null;
-    }
-    // **Metodo per l'amministratore per creare e assegnare un ticket direttamente a un tecnico**
-    public static void createAndAssignTicket(String title, String description, int clientId, int technicianId, int adminId, int productId) {
-        Ticket ticket = createTicket(title, description, clientId, productId); // Il ticket è registrato per il CLIENTE
-        if (ticket != null) {
-            assignTicket(ticket.getId(), technicianId, adminId); // L'amministratore assegna il ticket al tecnico
-            System.out.println("Ticket " + ticket.getId() + " creato per il cliente " + clientId + " e assegnato al tecnico " + technicianId);
-        } else {
-            System.out.println("Errore nella creazione del ticket.");
-        }
+    public static List<Ticket> getTicketsByUser(int userId, String statusFilter) {
+        TypedQuery<Ticket> query = entityManager.createQuery(
+                "SELECT t FROM Ticket t WHERE t.createdUser.id = :userId AND t.status = :status", Ticket.class);
+        query.setParameter("userId", userId);
+        query.setParameter("status", statusFilter);
+        return query.getResultList();
     }
 
-    // **Recupera tutti i ticket di un utente con stato aggiornato dalla tabella ticket_status**
-    public static List<Ticket> getTicketsByUser(int userId, int filtro) {
-        String sql = """
-            SELECT t.id, t.title, t.description,
-                   COALESCE(ts.status, t.status) AS current_status,
-                   t.creation_date, t.created_user_id
-            FROM tickets t
-            LEFT JOIN (
-                SELECT DISTINCT ON (ticket_id) ticket_id, status
-                FROM ticket_status
-                ORDER BY ticket_id, update_date DESC
-            ) ts ON t.id = ts.ticket_id
-            WHERE t.created_user_id = ?
-            """;
-
-        if (filtro == 2) sql += " AND COALESCE(ts.status, t.status) = 'open'";
-        if (filtro == 3) sql += " AND COALESCE(ts.status, t.status) = 'closed'";
-
-        List<Ticket> tickets = new ArrayList<>();
-        try (Connection conn = DatabaseConnection.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
-            pstmt.setInt(1, userId);
-            ResultSet rs = pstmt.executeQuery();
-            while (rs.next()) {
-                tickets.add(new Ticket(
-                        rs.getInt("id"),
-                        rs.getString("title"),
-                        rs.getString("description"),
-                        rs.getString("current_status"), // Ora prende lo stato più recente
-                        rs.getTimestamp("creation_date").toLocalDateTime(),
-                        rs.getInt("created_user_id")
-                ));
-            }
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-        return tickets;
+    public List<Ticket> getAssignedTickets(int technicianId) {
+        TypedQuery<Ticket> query = entityManager.createQuery(
+                "SELECT t FROM Ticket t WHERE t.assignedUser.id = :technicianId AND t.status != 'closed'", Ticket.class);
+        query.setParameter("technicianId", technicianId);
+        return query.getResultList();
     }
 
-    // **Assegna un ticket a un tecnico IT**
-    public static void assignTicket(int ticketId, int technicianId, int adminId) {
-        String sqlUpdate = "UPDATE tickets SET assigned_user_id = ? WHERE id = ?";
+    public List<Ticket> getTicketsByUser(int userId, int filtro) {
+        String jpql = """
+        SELECT t FROM Ticket t
+        LEFT JOIN TicketStatus ts ON ts.ticket.id = t.id
+        WHERE t.createdUser.id = :userId
+        AND (ts.updateDate IS NULL OR ts.updateDate = (
+            SELECT MAX(ts2.updateDate) FROM TicketStatus ts2 WHERE ts2.ticket.id = t.id
+        ))
+        """;
 
-        try (Connection conn = DatabaseConnection.getConnection()) {
-            // Assegna il ticket al tecnico IT
-            try (PreparedStatement pstmtUpdate = conn.prepareStatement(sqlUpdate)) {
-                pstmtUpdate.setInt(1, technicianId);
-                pstmtUpdate.setInt(2, ticketId);
-                pstmtUpdate.executeUpdate();
-            }
-
-            // Attiva la notifica al tecnico
-            Observer technicianObserver = new TechnicianObserver(technicianId, ticketId);
-            NotificationManager.addObserver(technicianObserver);
-            NotificationManager.notifyObservers("Ti è stato assegnato un nuovo ticket con ID " + ticketId);
-            NotificationManager.removeObserver(technicianObserver);
-
-            System.out.println("Ticket " + ticketId + " assegnato al tecnico " + technicianId);
-        } catch (SQLException e) {
-            e.printStackTrace();
+        if (filtro == 1) {
+        } else if (filtro == 2) {
+            jpql += " AND COALESCE(ts.status, t.status) = 'open'";
+        } else if (filtro == 3) {
+            jpql += " AND COALESCE(ts.status, t.status) = 'closed'";
         }
+
+        TypedQuery<Ticket> query = entityManager.createQuery(jpql, Ticket.class);
+        query.setParameter("userId", userId);
+        return query.getResultList();
     }
 
-    // **Recupera tutti i ticket assegnati a un tecnico IT con stato aggiornato**
-    public static List<Ticket> getAssignedTickets(int technicianId) {
-        String sql = """
-            SELECT t.id, t.title, t.description,
-                   COALESCE(ts.status, t.status) AS current_status,
-                   t.creation_date, t.created_user_id
-            FROM tickets t
-            LEFT JOIN (
-                SELECT DISTINCT ON (ticket_id) ticket_id, status
-                FROM ticket_status
-                ORDER BY ticket_id, update_date DESC
-            ) ts ON t.id = ts.ticket_id
-            WHERE t.assigned_user_id = ? AND COALESCE(ts.status, t.status) != 'closed'
-            """;
 
-        List<Ticket> tickets = new ArrayList<>();
-        try (Connection conn = DatabaseConnection.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
-            pstmt.setInt(1, technicianId);
-            ResultSet rs = pstmt.executeQuery();
-            while (rs.next()) {
-                tickets.add(new Ticket(
-                        rs.getInt("id"),
-                        rs.getString("title"),
-                        rs.getString("description"),
-                        rs.getString("current_status"), // Usa lo stato più recente
-                        rs.getTimestamp("creation_date").toLocalDateTime(),
-                        rs.getInt("created_user_id")
-                ));
-            }
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-        return tickets;
+    public Ticket findById(int ticketId) {
+        return entityManager.find(Ticket.class, ticketId);
     }
 
-    public static List<Ticket> getAllOpenedTickets(){
-        String sql = """
-            SELECT t.id, t.title, t.description,
-                   COALESCE(ts.status, t.status) AS current_status,
-                   t.creation_date, t.created_user_id
-            FROM tickets t
-            LEFT JOIN (
-                SELECT DISTINCT ON (ticket_id) ticket_id, status
-                FROM ticket_status
-                ORDER BY ticket_id, update_date DESC
-            ) ts ON t.id = ts.ticket_id
-            WHERE COALESCE(ts.status, t.status) != 'closed'
-            """;
-
-        List<Ticket> tickets = new ArrayList<>();
-        try (Connection conn = DatabaseConnection.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
-            ResultSet rs = pstmt.executeQuery();
-            while (rs.next()) {
-                tickets.add(new Ticket(
-                        rs.getInt("id"),
-                        rs.getString("title"),
-                        rs.getString("description"),
-                        rs.getString("current_status"), // Usa lo stato più recente
-                        rs.getTimestamp("creation_date").toLocalDateTime(),
-                        rs.getInt("created_user_id")
-                ));
-            }
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-        return tickets;
-    }
-
-    public static List<Products> getProducts() {
-        String sql = "SELECT * FROM products";
-        List<Products> products = new ArrayList<>();
-        try (Connection conn = DatabaseConnection.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
-            ResultSet rs = pstmt.executeQuery();
-            while (rs.next()) {
-                products.add(new Products(
-                        rs.getInt("id"),
-                        rs.getString("product_name")
-                ));
-            }
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-        return products;
-    }
-
-*/
 
 }

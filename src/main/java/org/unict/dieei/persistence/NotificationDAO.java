@@ -1,23 +1,31 @@
 package org.unict.dieei.persistence;
 
-import org.unict.dieei.configurations.DatabaseConnection;
-
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.SQLException;
+import jakarta.persistence.EntityManager;
+import org.unict.dieei.domain.Notification;
+import org.unict.dieei.domain.Ticket;
+import org.unict.dieei.domain.User;
 
 public class NotificationDAO {
-    public static void insertNotification(String message, int ticketId, int recipientId) {
-        String sql = "INSERT INTO notifications (message, ticket_id, recipient_id) VALUES (?, ?, ?)";
-        try (Connection conn = DatabaseConnection.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
-            pstmt.setString(1, message);
-            pstmt.setInt(2, ticketId);
-            pstmt.setInt(3, recipientId);
-            pstmt.executeUpdate();
-            System.out.println("Notifica salvata per utente ID: " + recipientId);
-        } catch (SQLException e) {
-            e.printStackTrace();
+    private final EntityManager entityManager;
+
+    public NotificationDAO(EntityManager entityManager) {
+        this.entityManager = entityManager;
+    }
+
+    public void insertNotification(String message, int ticketId, int recipientId) {
+        entityManager.getTransaction().begin();
+
+        Ticket ticket = entityManager.find(Ticket.class, ticketId);
+        User recipient = entityManager.find(User.class, recipientId);
+
+        if (ticket == null || recipient == null) {
+            System.out.println("Errore: Ticket o destinatario non trovato.");
+            entityManager.getTransaction().rollback();
+            return;
         }
+
+        Notification notification = new Notification(message, ticket, recipient);
+        entityManager.persist(notification);
+        entityManager.getTransaction().commit();
     }
 }

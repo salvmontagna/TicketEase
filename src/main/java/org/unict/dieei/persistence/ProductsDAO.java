@@ -1,7 +1,7 @@
 package org.unict.dieei.persistence;
 
 import jakarta.persistence.EntityManager;
-import org.unict.dieei.dto.Products;
+import org.unict.dieei.domain.Products;
 
 import java.util.List;
 

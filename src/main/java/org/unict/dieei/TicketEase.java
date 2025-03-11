@@ -3,14 +3,14 @@ package org.unict.dieei;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.EntityManagerFactory;
 import jakarta.persistence.Persistence;
-import org.unict.dieei.dto.Products;
-import org.unict.dieei.dto.Ticket;
-import org.unict.dieei.dto.User;
+import org.unict.dieei.domain.Ticket;
+import org.unict.dieei.domain.User;
 import org.unict.dieei.persistence.ProductsDAO;
 import org.unict.dieei.persistence.TicketDAO;
 import org.unict.dieei.persistence.TicketStatusDAO;
 import org.unict.dieei.persistence.UserDAO;
 import org.unict.dieei.service.TicketService;
+import org.unict.dieei.service.TicketStatusService;
 import org.unict.dieei.service.UserService;
 
 import java.util.List;
@@ -23,7 +23,8 @@ public class TicketEase {
     private static EntityManager em = emf.createEntityManager();
 
     private static UserService userService = new UserService(new UserDAO(em));
-    private static TicketService ticketService = new TicketService(new TicketDAO(em), new ProductsDAO(em));
+    private static TicketService ticketService = new TicketService(em, new TicketDAO(em), new ProductsDAO(em), new UserDAO(em));
+    private static TicketStatusService ticketStatusService = new TicketStatusService(new TicketStatusDAO(em), new TicketDAO(em) );
 
     public static void main(String[] args) {
         while (true) {
@@ -62,7 +63,9 @@ public class TicketEase {
         User user = userService.login(email, password);
         if (user != null) {
             System.out.println("\nLogin riuscito! Benvenuto, " + user.getName());
-            if (user.getRole() == 2) clientMenu(user);
+            if(user.getRole() == 0) adminMenu(user);
+            else if(user.getRole() == 1) technicianMenu(user);
+            else if(user.getRole() == 2) clientMenu(user);
         } else {
             System.out.println("Credenziali errate.");
         }
@@ -75,13 +78,25 @@ public class TicketEase {
         String email = scanner.nextLine();
         System.out.print("Inserisci password: ");
         String password = scanner.nextLine();
+
         System.out.println("Seleziona ruolo: 0 = Amministratore, 1 = Tecnico IT, 2 = Cliente");
         int role = scanner.nextInt();
-        scanner.nextLine();
+        scanner.nextLine(); // Consuma il newline rimasto nel buffer
 
-        userService.registerUser(username, email, password, role, null, null);
-        System.out.println("Registrazione avvenuta con successo!");
+        String taxCode = null;
+        String secretKey = null;
+
+        // Se il ruolo è Admin (0) o Tecnico IT (1), chiedi codice fiscale e chiave segreta
+        if (role == 0 || role == 1) {
+            System.out.print("Inserisci il Codice Fiscale: ");
+            taxCode = scanner.nextLine();
+            System.out.print("Inserisci la Chiave Segreta: ");
+            secretKey = scanner.nextLine();
+        }
+
+        userService.registerUser(username, email, password, role, taxCode, secretKey);
     }
+
 
     private static void clientMenu(User user) {
         while (true) {
@@ -109,31 +124,13 @@ public class TicketEase {
                     System.out.println("Ticket creato con successo!");
                     break;
                 case 2:
-                    System.out.println(ticketService.getAllOpenedTickets());
+                    viewTickets(user);
                     break;
                 case 0:
                     return;
                 default:
                     System.out.println("Opzione non valida.");
             }
-        }
-    }
-
-/*
-* private static void viewTickets(User user) {
-        System.out.println("\n1. Visualizza tutti i ticket");
-        System.out.println("2. Visualizza solo i ticket aperti");
-        System.out.println("3. Visualizza solo i ticket chiusi");
-        System.out.print("Scelta: ");
-
-        int filtro = scanner.nextInt();
-        scanner.nextLine();
-
-        List<Ticket> tickets = TicketDAO.getTicketsByUser(user.getId(), filtro);
-        for (int i = 0; i < tickets.size(); i++) {
-            System.out.println("=========== Ticket n. " + (i + 1) + " ===========");
-            System.out.println(tickets.get(i));
-            System.out.println("==================================");
         }
     }
 
@@ -150,10 +147,10 @@ public class TicketEase {
 
             switch (scelta) {
                 case 1:
-                    assignTicket(user);
+                    assignTicket();
                     break;
                 case 2:
-                    createAndAssignTicket(user);
+                    createAndAssignTicket();
                     break;
                 case 0:
                     return;
@@ -163,14 +160,18 @@ public class TicketEase {
         }
     }
 
-    private static void assignTicket(User admin) {
+    private static void assignTicket() {
 
-        showAllOpenedTickets();
+        List<Ticket> tickets = ticketService.getAllOpenedTickets();
+        for (Ticket ticket : tickets) {
+            System.out.println(ticket + "\n");
+        }
+
         System.out.print("Inserisci l'ID del ticket da assegnare: ");
         int ticketId = scanner.nextInt();
         scanner.nextLine();
 
-        List<User> technicians = UserDAO.getAllTechnicians();
+        List<User> technicians = userService.getAllTechnicians();
         System.out.println("Seleziona un tecnico IT:");
         for (User tech : technicians) {
             System.out.println(tech.getId() + ". " + tech.getName());
@@ -179,14 +180,30 @@ public class TicketEase {
         int techId = scanner.nextInt();
         scanner.nextLine();
 
-        TicketDAO.assignTicket(ticketId, techId, admin.getId());
+        ticketService.assignTicket(ticketId, techId);
+        System.out.println("Ticket assignato con successo!");
     }
 
+    private static void viewTickets(User user) {
+        System.out.println("\n1. Visualizza tutti i ticket");
+        System.out.println("2. Visualizza solo i ticket aperti");
+        System.out.println("3. Visualizza solo i ticket chiusi");
+        System.out.print("Scelta: ");
 
+        int filtro = scanner.nextInt();
+        scanner.nextLine();
 
-    private static void createAndAssignTicket(User admin) {
+        List<Ticket> tickets = ticketService.getTicketsByUser(user.getId(), filtro);
+        for (int i = 0; i < tickets.size(); i++) {
+            System.out.println("=========== Ticket n. " + (i + 1) + " ===========");
+            System.out.println(tickets.get(i));
+            System.out.println("==================================");
+        }
+    }
 
-        showProducts();
+    private static void createAndAssignTicket() {
+
+        ticketService.showProducts();
         System.out.println("Digitare il numero del prodotto in cui si è riscontrato il problema: ");
         int productId = scanner.nextInt();
         scanner.nextLine();
@@ -197,7 +214,7 @@ public class TicketEase {
         String description = scanner.nextLine();
 
         System.out.println("\nSeleziona un cliente per cui creare il ticket:");
-        List<User> clients = UserDAO.getAllCustomers(); // Ottieni tutti gli utenti, filtreremo i clienti
+        List<User> clients = userService.getAllCustomers(); // Ottieni tutti gli utenti, filtreremo i clienti
         for (User client : clients) {
             System.out.println(client.getId() + ". " + client.getName());
         }
@@ -206,7 +223,7 @@ public class TicketEase {
         scanner.nextLine();
 
         System.out.println("\nSeleziona un tecnico IT per assegnare il ticket:");
-        List<User> technicians = UserDAO.getAllTechnicians();
+        List<User> technicians = userService.getAllTechnicians();
         for (User tech : technicians) {
             System.out.println(tech.getId() + ". " + tech.getName());
         }
@@ -214,7 +231,10 @@ public class TicketEase {
         int technicianId = scanner.nextInt();
         scanner.nextLine();
 
-        TicketDAO.createAndAssignTicket(title, description, clientId, technicianId, admin.getId(), productId);
+        User client = userService.getUserById(clientId);
+
+        ticketService.createAndAssignTicket(title, description, client, technicianId, productId);
+        System.out.println("Ticket assignato con successo!");
     }
 
     private static void technicianMenu(User user) {
@@ -256,11 +276,11 @@ public class TicketEase {
 
         String status = getRealStatus(statusNumber);
 
-        TicketStatusDAO.updateTicketStatus(ticketId, status, user.getId());
+        ticketStatusService.updateTicketStatus(ticketId, status, user.getId());
     }
 
     private static void showAssignedTickets(int technicianId) {
-        List<Ticket> tickets = TicketDAO.getAssignedTickets(technicianId);
+        List<Ticket> tickets = ticketService.getAssignedTickets(technicianId);
         for (Ticket ticket : tickets) {
             System.out.println(ticket);
         }
@@ -284,7 +304,6 @@ public class TicketEase {
 
         return status;
     }
-*/
 
 }
 

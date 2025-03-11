@@ -1,4 +1,4 @@
-package org.unict.dieei.dto;
+package org.unict.dieei.domain;
 
 import jakarta.persistence.*;
 
