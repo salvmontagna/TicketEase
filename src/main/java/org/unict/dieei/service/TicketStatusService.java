@@ -17,15 +17,14 @@ public class TicketStatusService {
         this.ticketDAO = ticketDAO;
     }
 
-    public boolean updateTicketStatus(int ticketId, String newStatus, int updatedBy) {
+    public void updateTicketStatus(int ticketId, String newStatus, int updatedBy) {
         Ticket ticket = ticketDAO.findById(ticketId);
         if (ticket == null) {
             System.out.println("Errore: Ticket con ID " + ticketId + " non trovato.");
-            return false;
+            return;
         }
 
         ticketStatusDAO.updateTicketStatus(ticketId, newStatus, updatedBy);
-        return true;
     }
 
     public List<TicketStatus> getTicketHistory(int ticketId) {

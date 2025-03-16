@@ -7,8 +7,6 @@ import org.unict.dieei.domain.User;
 import org.unict.dieei.observer.NotificationManager;
 import org.unict.dieei.observer.Observer;
 import org.unict.dieei.observer.TechnicianObserver;
-import org.unict.dieei.persistence.NotificationDAO;
-import org.unict.dieei.persistence.ProductsDAO;
 import org.unict.dieei.persistence.TicketDAO;
 import org.unict.dieei.persistence.UserDAO;
 
@@ -18,19 +16,20 @@ public class TicketService {
 
     private final EntityManager entityManager;
     private TicketDAO ticketDAO;
-    private ProductsDAO productsDAO;
+    private ProductsService productsService;
     private UserDAO userDAO;
 
-    public TicketService(EntityManager entityManager, TicketDAO ticketDAO, ProductsDAO productsDAO, UserDAO userDAO) {
+    public TicketService(EntityManager entityManager, TicketDAO ticketDAO, ProductsService productsService, UserDAO userDAO) {
         this.entityManager = entityManager;
         this.ticketDAO = ticketDAO;
-        this.productsDAO = productsDAO;
+        this.productsService = productsService;
         this.userDAO = userDAO;
     }
 
     public Ticket createTicket(String title, String description, User user, int productId) {
 
-        Products product = productsDAO.findById(productId);
+        Products product = productsService.findById(productId);
+
         if (product == null) {
             System.out.println("Errore: Il prodotto con ID " + productId + " non esiste.");
             return null;
@@ -75,12 +74,6 @@ public class TicketService {
         ticket.setAssignedUser(user);
         ticketDAO.saveTicket(ticket);
 
-    }
-
-    public void showProducts(){
-        List<Products> productList = productsDAO.getAllProducts();
-        System.out.println("Lista Prodotti Disponibili:");
-        productList.forEach(product -> System.out.println(product.getId() + ": " + product.getProductName()));
     }
 
     public void createAndAssignTicket(String title, String description, User client, int technicianId, int productId) {

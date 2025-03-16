@@ -3,15 +3,11 @@ package org.unict.dieei;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.EntityManagerFactory;
 import jakarta.persistence.Persistence;
+import org.unict.dieei.domain.Products;
 import org.unict.dieei.domain.Ticket;
 import org.unict.dieei.domain.User;
-import org.unict.dieei.persistence.ProductsDAO;
-import org.unict.dieei.persistence.TicketDAO;
-import org.unict.dieei.persistence.TicketStatusDAO;
-import org.unict.dieei.persistence.UserDAO;
-import org.unict.dieei.service.TicketService;
-import org.unict.dieei.service.TicketStatusService;
-import org.unict.dieei.service.UserService;
+import org.unict.dieei.persistence.*;
+import org.unict.dieei.service.*;
 
 import java.util.List;
 import java.util.Scanner;
@@ -22,8 +18,10 @@ public class TicketEase {
     private static EntityManagerFactory emf = Persistence.createEntityManagerFactory("ticket-ease");
     private static EntityManager em = emf.createEntityManager();
 
-    private static UserService userService = new UserService(new UserDAO(em));
-    private static TicketService ticketService = new TicketService(em, new TicketDAO(em), new ProductsDAO(em), new UserDAO(em));
+    private static AuthorizationService authService = new AuthorizationService(new AuthorizationDAO(em));
+    private static ProductsService productsService = new ProductsService(new ProductsDAO(em));
+    private static UserService userService = new UserService(new UserDAO(em), authService);
+    private static TicketService ticketService = new TicketService(em, new TicketDAO(em), productsService, new UserDAO(em));
     private static TicketStatusService ticketStatusService = new TicketStatusService(new TicketStatusDAO(em), new TicketDAO(em) );
 
     public static void main(String[] args) {
@@ -39,10 +37,10 @@ public class TicketEase {
 
             switch (scelta) {
                 case 1:
-                    login();
+                    signinPage();
                     break;
                 case 2:
-                    registerUser();
+                    signupPage();
                     break;
                 case 0:
                     System.out.println("Chiusura del sistema...");
@@ -54,16 +52,16 @@ public class TicketEase {
         }
     }
 
-    private static void login() {
+    private static void signinPage() {
         System.out.print("\nInserisci email: ");
         String email = scanner.nextLine();
         System.out.print("Inserisci password: ");
         String password = scanner.nextLine();
 
-        User user = userService.login(email, password);
+        User user = userService.loginUser(email, password);
         if (user != null) {
             System.out.println("\nLogin riuscito! Benvenuto, " + user.getName());
-            if(user.getRole() == 0) adminMenu(user);
+            if(user.getRole() == 0) adminMenu();
             else if(user.getRole() == 1) technicianMenu(user);
             else if(user.getRole() == 2) clientMenu(user);
         } else {
@@ -71,7 +69,7 @@ public class TicketEase {
         }
     }
 
-    private static void registerUser() {
+    private static void signupPage() {
         System.out.print("\nInserisci nome utente: ");
         String username = scanner.nextLine();
         System.out.print("Inserisci email: ");
@@ -111,17 +109,7 @@ public class TicketEase {
 
             switch (scelta) {
                 case 1:
-                    ticketService.showProducts();
-                    System.out.println("Digitare il numero del prodotto in cui si è riscontrato il problema: ");
-                    int productId = scanner.nextInt();
-                    scanner.nextLine();
-
-                    System.out.print("Inserisci il titolo del ticket: ");
-                    String title = scanner.nextLine();
-                    System.out.print("Inserisci la descrizione del problema: ");
-                    String description = scanner.nextLine();
-                    ticketService.createTicket(title, description, user, productId);
-                    System.out.println("Ticket creato con successo!");
+                    createTicket(user);
                     break;
                 case 2:
                     viewTickets(user);
@@ -134,7 +122,7 @@ public class TicketEase {
         }
     }
 
-    private static void adminMenu(User user) {
+    private static void adminMenu() {
         while (true) {
             System.out.println("\n===== Menu Amministratore =====");
             System.out.println("1. Assegna un ticket");
@@ -171,7 +159,7 @@ public class TicketEase {
         int ticketId = scanner.nextInt();
         scanner.nextLine();
 
-        List<User> technicians = userService.getAllTechnicians();
+        List<User> technicians = userService.findAllTechnicians();
         System.out.println("Seleziona un tecnico IT:");
         for (User tech : technicians) {
             System.out.println(tech.getId() + ". " + tech.getName());
@@ -203,7 +191,8 @@ public class TicketEase {
 
     private static void createAndAssignTicket() {
 
-        ticketService.showProducts();
+        showAvailableProducts();
+
         System.out.println("Digitare il numero del prodotto in cui si è riscontrato il problema: ");
         int productId = scanner.nextInt();
         scanner.nextLine();
@@ -214,7 +203,7 @@ public class TicketEase {
         String description = scanner.nextLine();
 
         System.out.println("\nSeleziona un cliente per cui creare il ticket:");
-        List<User> clients = userService.getAllCustomers(); // Ottieni tutti gli utenti, filtreremo i clienti
+        List<User> clients = userService.findAllCustomers(); // Ottieni tutti gli utenti, filtreremo i clienti
         for (User client : clients) {
             System.out.println(client.getId() + ". " + client.getName());
         }
@@ -223,7 +212,7 @@ public class TicketEase {
         scanner.nextLine();
 
         System.out.println("\nSeleziona un tecnico IT per assegnare il ticket:");
-        List<User> technicians = userService.getAllTechnicians();
+        List<User> technicians = userService.findAllTechnicians();
         for (User tech : technicians) {
             System.out.println(tech.getId() + ". " + tech.getName());
         }
@@ -231,7 +220,7 @@ public class TicketEase {
         int technicianId = scanner.nextInt();
         scanner.nextLine();
 
-        User client = userService.getUserById(clientId);
+        User client = userService.findById(clientId);
 
         ticketService.createAndAssignTicket(title, description, client, technicianId, productId);
         System.out.println("Ticket assignato con successo!");
@@ -263,6 +252,21 @@ public class TicketEase {
         }
     }
 
+    private static void createTicket(User user){
+        showAvailableProducts();
+
+        System.out.println("Digitare il numero del prodotto in cui si è riscontrato il problema: ");
+        int productId = scanner.nextInt();
+        scanner.nextLine();
+
+        System.out.print("Inserisci il titolo del ticket: ");
+        String title = scanner.nextLine();
+        System.out.print("Inserisci la descrizione del problema: ");
+        String description = scanner.nextLine();
+        ticketService.createTicket(title, description, user, productId);
+        System.out.println("Ticket creato con successo!");
+    }
+
     private static void updateTicketStatus(User user) {
 
         showAssignedTickets(user.getId());
@@ -284,6 +288,12 @@ public class TicketEase {
         for (Ticket ticket : tickets) {
             System.out.println(ticket);
         }
+    }
+
+    private static void showAvailableProducts() {
+        List<Products> products = productsService.getAllProducts();
+        System.out.println("Lista Prodotti Disponibili:");
+        products.forEach(product -> System.out.println(product.getId() + ": " + product.getProductName()));
     }
 
     private static String getRealStatus(int statusNumber){
