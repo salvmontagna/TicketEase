@@ -17,6 +17,10 @@ public class TechnicianObserver implements Observer {
     @Override
     public void update(String message) {
         System.out.println("Notifica per Tecnico IT (ID: " + technicianId + "): " + message);
-        notificationDAO.insertNotification(message, ticketId, technicianId);
+        try{
+            notificationDAO.saveNotification(message, ticketId, technicianId);
+        } catch (Exception e) {
+            System.out.println("Errore durante il salvataggio della notifica del tecnico: " + e.getMessage());
+        }
     }
 }

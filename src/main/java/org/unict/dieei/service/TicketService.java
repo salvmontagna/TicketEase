@@ -4,11 +4,7 @@ import jakarta.persistence.EntityManager;
 import org.unict.dieei.domain.Products;
 import org.unict.dieei.domain.Ticket;
 import org.unict.dieei.domain.User;
-import org.unict.dieei.observer.NotificationManager;
-import org.unict.dieei.observer.Observer;
-import org.unict.dieei.observer.TechnicianObserver;
 import org.unict.dieei.persistence.TicketDAO;
-import org.unict.dieei.persistence.UserDAO;
 
 import java.util.List;
 
@@ -17,18 +13,20 @@ public class TicketService {
     private final EntityManager entityManager;
     private TicketDAO ticketDAO;
     private ProductsService productsService;
-    private UserDAO userDAO;
+    private UserService userService;
+    private NotificationService notificationService;
 
-    public TicketService(EntityManager entityManager, TicketDAO ticketDAO, ProductsService productsService, UserDAO userDAO) {
+    public TicketService(EntityManager entityManager, TicketDAO ticketDAO, ProductsService productsService, UserService userService, NotificationService notificationService) {
         this.entityManager = entityManager;
         this.ticketDAO = ticketDAO;
         this.productsService = productsService;
-        this.userDAO = userDAO;
+        this.userService = userService;
+        this.notificationService = notificationService;
     }
 
     public Ticket createTicket(String title, String description, User user, int productId) {
 
-        Products product = productsService.findById(productId);
+        Products product = productsService.findProductById(productId);
 
         if (product == null) {
             System.out.println("Errore: Il prodotto con ID " + productId + " non esiste.");
@@ -41,38 +39,58 @@ public class TicketService {
         ticket.setCreatedUser(user);
         ticket.setProduct(product);
 
-        return ticketDAO.saveTicket(ticket);
+        try {
+            return ticketDAO.saveTicket(ticket);
+        } catch (Exception e) {
+            System.out.println("Errore durante la creazione del ticket: " + e.getMessage());
+            return null;
+        }
 
     }
 
     public List<Ticket> getAllOpenedTickets() {
-        return ticketDAO.getAllOpenedTickets();
+        try {
+            return ticketDAO.getAllOpenedTickets();
+        } catch (Exception e) {
+            System.out.println("Errore durante il recupero dei ticket aperti: " + e.getMessage());
+            return null;
+        }
     }
 
     public List<Ticket> getTicketsByUser(int user, int filter) {
-        return ticketDAO.getTicketsByUser(user, filter);
+        try {
+            return ticketDAO.getTicketsByUser(user, filter);
+        } catch (Exception e) {
+            System.out.println("Errore durante il recupero dei ticket per l'utente: " + e.getMessage());
+            return null;
+        }
     }
 
-    public void assignTicket(int ticketId, int technicianId) {
+    public Ticket assignTicket(int ticketId, int technicianId) {
+
         Ticket ticket = ticketDAO.findById(ticketId);
         if (ticket == null) {
             System.out.println("Errore: Il ticket con ID " + ticketId + " non esiste.");
-            return;
+            return null;
         }
 
-        User user = userDAO.findById(technicianId);
+        User user = userService.findById(technicianId);
         if (user == null) {
             System.out.println("Errore: L'utente con ID " + technicianId + " non esiste.");
-            return;
+            return null;
         }
 
-        Observer technicianObserver = new TechnicianObserver(technicianId, ticketId, entityManager);
-        NotificationManager.addObserver(technicianObserver);
-        NotificationManager.notifyObservers("Ti è stato assegnato un nuovo ticket con ID " + ticketId);
-        NotificationManager.removeObserver(technicianObserver);
+        try {
+            notificationService.sendTechNotification(technicianId, ticketId, entityManager);
 
-        ticket.setAssignedUser(user);
-        ticketDAO.saveTicket(ticket);
+            ticket.setAssignedUser(user);
+
+            return ticketDAO.saveTicket(ticket);
+
+        } catch (Exception e) {
+            System.out.println("Errore durante l'assegnazione del ticket: " + e.getMessage());
+            return null;
+        }
 
     }
 
@@ -82,7 +100,22 @@ public class TicketService {
     }
 
     public List<Ticket> getAssignedTickets(int userId) {
-        return ticketDAO.getAssignedTickets(userId);
+        try{
+            return ticketDAO.getAssignedTickets(userId);
+        } catch (Exception e) {
+            System.out.println("Errore durante il recupero dei ticket assegnati: " + e.getMessage());
+            return null;
+        }
     }
+
+    public Ticket findById(int ticketId){
+        try {
+            return ticketDAO.findById(ticketId);
+        } catch (Exception e) {
+            System.out.println("Errore durante il recupero del ticket: " + e.getMessage());
+            return null;
+        }
+    }
+
 
 }

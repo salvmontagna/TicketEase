@@ -17,6 +17,11 @@ public class ClientObserver implements Observer {
     @Override
     public void update(String message) {
         System.out.println("Notifica per Cliente (ID: " + clientId + "): " + message);
-        notificationDAO.insertNotification(message, ticketId, clientId);
+
+        try{
+            notificationDAO.saveNotification(message, ticketId, clientId);
+        } catch (Exception e) {
+            System.out.println("Errore durante il salvataggio della notifica del cliente: " + e.getMessage());
+        }
     }
 }

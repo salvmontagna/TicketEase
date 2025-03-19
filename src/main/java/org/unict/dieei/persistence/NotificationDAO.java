@@ -12,7 +12,7 @@ public class NotificationDAO {
         this.entityManager = entityManager;
     }
 
-    public void insertNotification(String message, int ticketId, int recipientId) {
+    public void saveNotification(String message, int ticketId, int recipientId) {
         entityManager.getTransaction().begin();
 
         Ticket ticket = entityManager.find(Ticket.class, ticketId);
@@ -28,4 +28,5 @@ public class NotificationDAO {
         entityManager.persist(notification);
         entityManager.getTransaction().commit();
     }
+
 }

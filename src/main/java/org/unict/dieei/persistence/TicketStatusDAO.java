@@ -19,7 +19,7 @@ public class TicketStatusDAO {
         this.entityManager = entityManager;
     }
 
-    public void updateTicketStatus(int ticketId, String newStatus, int updatedBy) {
+    public Ticket updateTicketStatus(int ticketId, String newStatus, int updatedBy) {
         entityManager.getTransaction().begin();
 
         Ticket ticket = entityManager.find(Ticket.class, ticketId);
@@ -28,7 +28,7 @@ public class TicketStatusDAO {
         if (ticket == null || user == null) {
             System.out.println("Errore: Ticket o utente non trovato.");
             entityManager.getTransaction().rollback();
-            return;
+            return null;
         }
 
         TicketStatus ticketStatus = new TicketStatus(newStatus, ticket, user);
@@ -39,11 +39,9 @@ public class TicketStatusDAO {
 
         entityManager.getTransaction().commit();
 
-        if ("closed".equalsIgnoreCase(newStatus)) {
-            sendClosureNotification(ticket);
-        }
-
         System.out.println("Stato del ticket " + ticketId + " aggiornato a: " + newStatus);
+
+        return ticket;
     }
 
     public List<TicketStatus> getTicketHistory(int ticketId) {
@@ -55,15 +53,5 @@ public class TicketStatusDAO {
         return query.getResultList();
     }
 
-    private void sendClosureNotification(Ticket ticket) {
-        int clientId = ticket.getCreatedUser().getId();
-
-        if (clientId > 0) {
-            Observer clientObserver = new ClientObserver(clientId, ticket.getId(), entityManager);
-            NotificationManager.addObserver(clientObserver);
-            NotificationManager.notifyObservers("Il tuo ticket con ID " + ticket.getId() + " è stato chiuso.");
-            NotificationManager.removeObserver(clientObserver);
-        }
-    }
 
 }

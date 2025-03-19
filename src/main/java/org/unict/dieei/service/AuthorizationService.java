@@ -11,7 +11,12 @@ public class AuthorizationService {
     }
 
     public boolean isAuthorized(String taxCode, String secretKey, int role) {
-        return authorizationDAO.isAuthorized(taxCode, secretKey, role);
+        try {
+            return authorizationDAO.isAuthorized(taxCode, secretKey, role);
+        } catch (Exception e) {
+            System.out.println("Errore durante l'autorizzazione: " + e.getMessage());
+            return false;
+        }
     }
 
 }

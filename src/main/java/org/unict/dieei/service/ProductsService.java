@@ -14,11 +14,21 @@ public class ProductsService {
     }
 
     public List<Products> getAllProducts(){
-        return productsDAO.getAllProducts();
+        try {
+            return productsDAO.getAllProducts();
+        } catch (Exception e) {
+            System.out.println("Errore durante il recupero dei prodotti: " + e.getMessage());
+            return null;
+        }
     }
 
-   public Products findById(int productId){
-       return productsDAO.findById(productId);
+   public Products findProductById(int productId){
+        try{
+            return productsDAO.findById(productId);
+        } catch (Exception e) {
+            System.out.println("Errore durante il recupero del prodotto: " + e.getMessage());
+            return null;
+        }
    }
 
 }

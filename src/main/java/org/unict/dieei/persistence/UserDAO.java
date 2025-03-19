@@ -14,11 +14,13 @@ public class UserDAO {
         this.entityManager = entityManager;
     }
 
-    public void saveUser(User user) {
+    public User saveUser(User user) {
         entityManager.getTransaction().begin();
         entityManager.persist(user);
         entityManager.getTransaction().commit();
+        return user;
     }
+
 
     public User findByEmail(String email) {
         try {

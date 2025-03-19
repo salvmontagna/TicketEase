@@ -21,8 +21,9 @@ public class TicketEase {
     private static AuthorizationService authService = new AuthorizationService(new AuthorizationDAO(em));
     private static ProductsService productsService = new ProductsService(new ProductsDAO(em));
     private static UserService userService = new UserService(new UserDAO(em), authService);
-    private static TicketService ticketService = new TicketService(em, new TicketDAO(em), productsService, new UserDAO(em));
-    private static TicketStatusService ticketStatusService = new TicketStatusService(new TicketStatusDAO(em), new TicketDAO(em) );
+    private static NotificationService notificationService = new NotificationService(new NotificationDAO(em), em);
+    private static TicketService ticketService = new TicketService(em, new TicketDAO(em), productsService, userService, notificationService);
+    private static TicketStatusService ticketStatusService = new TicketStatusService(new TicketStatusDAO(em), ticketService, notificationService );
 
     public static void main(String[] args) {
         while (true) {
@@ -32,8 +33,16 @@ public class TicketEase {
             System.out.println("0. Esci");
             System.out.print("Scelta: ");
 
-            int scelta = scanner.nextInt();
-            scanner.nextLine();
+            int scelta = 0;
+
+            try {
+                scelta = scanner.nextInt();
+                scanner.nextLine();
+            } catch (Exception e) {
+                System.out.println("Errore: Inserire un numero.");
+                scanner.nextLine();
+                continue;
+            }
 
             switch (scelta) {
                 case 1:
@@ -92,7 +101,15 @@ public class TicketEase {
             secretKey = scanner.nextLine();
         }
 
-        userService.registerUser(username, email, password, role, taxCode, secretKey);
+        User registerUser = userService.registerUser(username, email, password, role, taxCode, secretKey);
+
+        if (registerUser != null && role == 0)
+            adminMenu();
+        else if (registerUser != null && role == 1)
+            technicianMenu(registerUser);
+        else if (registerUser != null && role == 2)
+            clientMenu(registerUser);
+
     }
 
 
@@ -150,26 +167,36 @@ public class TicketEase {
 
     private static void assignTicket() {
 
-        List<Ticket> tickets = ticketService.getAllOpenedTickets();
-        for (Ticket ticket : tickets) {
-            System.out.println(ticket + "\n");
-        }
-
+        getAllOpenedTickets();
         System.out.print("Inserisci l'ID del ticket da assegnare: ");
         int ticketId = scanner.nextInt();
         scanner.nextLine();
 
-        List<User> technicians = userService.findAllTechnicians();
+        findAllTechnicians();
         System.out.println("Seleziona un tecnico IT:");
-        for (User tech : technicians) {
-            System.out.println(tech.getId() + ". " + tech.getName());
-        }
-        System.out.print("ID tecnico: ");
         int techId = scanner.nextInt();
         scanner.nextLine();
 
-        ticketService.assignTicket(ticketId, techId);
-        System.out.println("Ticket assignato con successo!");
+        Ticket ticket = ticketService.assignTicket(ticketId, techId);
+
+        if (ticket != null)
+            System.out.println("Ticket assegnato con successo!");
+
+
+    }
+
+    private static void getAllOpenedTickets() {
+        List<Ticket> tickets = ticketService.getAllOpenedTickets();
+        for (Ticket ticket : tickets) {
+            System.out.println(ticket + "\n");
+        }
+    }
+
+    private static void findAllTechnicians() {
+        List<User> technicians = userService.findAllTechnicians();
+        for (User tech : technicians) {
+            System.out.println(tech.getId() + ". " + tech.getName());
+        }
     }
 
     private static void viewTickets(User user) {
@@ -263,8 +290,11 @@ public class TicketEase {
         String title = scanner.nextLine();
         System.out.print("Inserisci la descrizione del problema: ");
         String description = scanner.nextLine();
-        ticketService.createTicket(title, description, user, productId);
-        System.out.println("Ticket creato con successo!");
+        Ticket ticket = ticketService.createTicket(title, description, user, productId);
+        if (ticket != null)
+            System.out.println("Ticket creato con successo!");
+        else
+            System.out.println("Errore nella creazione del ticket.");
     }
 
     private static void updateTicketStatus(User user) {
