@@ -18,15 +18,22 @@ public class TicketStatusService {
         this.notificationService = notificationService;
     }
 
-    public void updateTicketStatus(int ticketId, String newStatus, int updatedBy) {
+
+
+    public void updateTicketStatus(int ticketId, String newStatus, int updatedBy, String statusDescription) {
         Ticket ticket = ticketService.findById(ticketId);
         if (ticket == null) {
             System.out.println("Errore: Ticket con ID " + ticketId + " non trovato.");
             return;
         }
 
+        if (statusDescription == null || statusDescription.isEmpty()) {
+            System.out.println("Errore: la descrizione non deve essere vuota.");
+            return;
+        }
+
         try {
-            ticketStatusDAO.updateTicketStatus(ticketId, newStatus, updatedBy);
+            ticketStatusDAO.update(ticketId, newStatus, updatedBy, statusDescription);
         } catch (Exception e) {
             System.out.println("Errore durante l'aggiornamento dello stato del ticket: " + e.getMessage());
         }
@@ -38,7 +45,11 @@ public class TicketStatusService {
     }
 
     public List<TicketStatus> getTicketHistory(int ticketId) {
-        return ticketStatusDAO.getTicketHistory(ticketId);
+        try {
+            return ticketStatusDAO.getTicketHistory(ticketId);
+        } catch (Exception e) {
+            return null;
+        }
     }
 
 }

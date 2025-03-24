@@ -26,6 +26,7 @@ CREATE TABLE IF NOT EXISTS ticket_status (
     status VARCHAR(20) NOT NULL CHECK(status IN ('open', 'in_progress', 'closed')),
     update_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_by INTEGER NOT NULL,
+    status_description VARCHAR NOT NULL DEFAULT '',
     FOREIGN KEY (ticket_id) REFERENCES tickets(id) ON DELETE CASCADE,
     FOREIGN KEY (updated_by) REFERENCES users(id) ON DELETE CASCADE
 );

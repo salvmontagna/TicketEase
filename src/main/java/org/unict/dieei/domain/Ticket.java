@@ -127,7 +127,7 @@ public class Ticket {
                 + "Descrizione: " + description + " - "
                 + "Stato: " + status + " - "
                 + "Data Creazione: " + creationDate + " - "
-                + "Creato da User ID: " + createdUser.getId();
+                + "Creato da: " + createdUser.getEmail();
     }
 
 

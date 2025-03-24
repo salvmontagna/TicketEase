@@ -68,7 +68,7 @@ public class TicketService {
 
     public Ticket assignTicket(int ticketId, int technicianId) {
 
-        Ticket ticket = ticketDAO.findById(ticketId);
+        Ticket ticket = ticketDAO.findTicketById(ticketId);
         if (ticket == null) {
             System.out.println("Errore: Il ticket con ID " + ticketId + " non esiste.");
             return null;
@@ -110,12 +110,19 @@ public class TicketService {
 
     public Ticket findById(int ticketId){
         try {
-            return ticketDAO.findById(ticketId);
+            return ticketDAO.findTicketById(ticketId);
         } catch (Exception e) {
             System.out.println("Errore durante il recupero del ticket: " + e.getMessage());
             return null;
         }
     }
 
+    public List<Ticket> getAllTickets(){
+        return ticketDAO.getAllTickets();
+    }
+
+    public Ticket getTicketById(int ticketId) {
+        return ticketDAO.findTicketById(ticketId);
+    }
 
 }

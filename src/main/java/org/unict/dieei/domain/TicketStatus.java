@@ -13,6 +13,9 @@ public class TicketStatus {
     @Column(nullable = false, length = 20)
     private String status; // "open", "in_progress", "closed"
 
+    @Column(name = "status_description", nullable = false)
+    private String statusDescription;
+
     @Column(name = "update_date", nullable = false)
     private LocalDateTime updateDate = LocalDateTime.now();
 
@@ -26,11 +29,22 @@ public class TicketStatus {
 
     protected TicketStatus() {}
 
-    public TicketStatus(String status, Ticket ticket, User updatedBy) {
+    @Override
+    public String toString() {
+        return "\n--- Ticket Status Update ---\n" +
+                "Status:           " + status + "\n" +
+                "Description:      " + statusDescription + "\n" +
+                "Updated on:       " + updateDate + "\n" +
+                "Ticket ID:        " + (ticket != null ? ticket.getId() : "N/A") + "\n" +
+                "Updated by:       " + (updatedBy != null ? updatedBy.getEmail() : "N/A") + "\n";
+    }
+
+    public TicketStatus(String status, Ticket ticket, User updatedBy, String statusDescription) {
         this.status = status;
         this.ticket = ticket;
         this.updatedBy = updatedBy;
         this.updateDate = LocalDateTime.now();
+        this.statusDescription = statusDescription;
     }
 
     public int getId() { return id; }
@@ -38,6 +52,9 @@ public class TicketStatus {
 
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }
+
+    public String getStatusDescription() { return statusDescription; }
+    public void setStatusDescription(String statusDescription) { this.statusDescription = statusDescription; }
 
     public LocalDateTime getUpdateDate() { return updateDate; }
     public void setUpdateDate(LocalDateTime updateDate) { this.updateDate = updateDate; }

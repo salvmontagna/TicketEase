@@ -4,9 +4,6 @@ import jakarta.persistence.EntityManager;
 import jakarta.persistence.TypedQuery;
 import org.unict.dieei.domain.TicketStatus;
 import org.unict.dieei.domain.User;
-import org.unict.dieei.observer.Observer;
-import org.unict.dieei.observer.ClientObserver;
-import org.unict.dieei.observer.NotificationManager;
 
 import java.util.List;
 
@@ -19,7 +16,7 @@ public class TicketStatusDAO {
         this.entityManager = entityManager;
     }
 
-    public Ticket updateTicketStatus(int ticketId, String newStatus, int updatedBy) {
+    public Ticket update(int ticketId, String newStatus, int updatedBy, String statusDescription) {
         entityManager.getTransaction().begin();
 
         Ticket ticket = entityManager.find(Ticket.class, ticketId);
@@ -31,7 +28,7 @@ public class TicketStatusDAO {
             return null;
         }
 
-        TicketStatus ticketStatus = new TicketStatus(newStatus, ticket, user);
+        TicketStatus ticketStatus = new TicketStatus(newStatus, ticket, user, statusDescription);
         entityManager.persist(ticketStatus);
 
         ticket.setStatus(newStatus);

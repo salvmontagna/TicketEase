@@ -1,12 +1,15 @@
 package org.unict.dieei.service;
 
 import jakarta.persistence.EntityManager;
+import org.unict.dieei.domain.Notification;
 import org.unict.dieei.domain.Ticket;
 import org.unict.dieei.observer.ClientObserver;
 import org.unict.dieei.observer.NotificationManager;
 import org.unict.dieei.observer.Observer;
 import org.unict.dieei.observer.TechnicianObserver;
 import org.unict.dieei.persistence.NotificationDAO;
+
+import java.util.List;
 
 public class NotificationService {
 
@@ -34,6 +37,10 @@ public class NotificationService {
             NotificationManager.notifyObservers("Il tuo ticket con ID " + ticket.getId() + " è stato chiuso.");
             NotificationManager.removeObserver(clientObserver);
         }
+    }
+
+    public List<Notification> getNotifications(int userId) {
+        return notificationDAO.getNotificationsByRecipientId(userId);
     }
 
 }

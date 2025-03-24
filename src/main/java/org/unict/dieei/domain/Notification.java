@@ -33,6 +33,15 @@ public class Notification {
         this.recipient = recipient;
     }
 
+    @Override
+    public String toString() {
+        return "Notifica - " +
+                "ID: " + id +
+                " - Messaggio: \"" + message + "\"" +
+                " - Ticket: " + (ticket != null ? ticket.getId() : "N/A") +
+                " - Data: " + sentDate;
+    }
+
     // Getters & Setters
     public int getId() { return id; }
     public void setId(int id) { this.id = id; }

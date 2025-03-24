@@ -27,6 +27,12 @@ public class TicketDAO {
         return query.getResultList();
     }
 
+    public List<Ticket> getAllTickets() {
+        TypedQuery<Ticket> query = entityManager.createQuery(
+                "SELECT t FROM Ticket t", Ticket.class);
+        return query.getResultList();
+    }
+
     public void assignTicket(int ticketId, int technicianId) {
         entityManager.getTransaction().begin();
         Ticket ticket = entityManager.find(Ticket.class, ticketId);
@@ -74,7 +80,7 @@ public class TicketDAO {
     }
 
 
-    public Ticket findById(int ticketId) {
+    public Ticket findTicketById(int ticketId) {
         return entityManager.find(Ticket.class, ticketId);
     }
 

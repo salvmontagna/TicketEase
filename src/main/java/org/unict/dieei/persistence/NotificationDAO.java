@@ -5,6 +5,8 @@ import org.unict.dieei.domain.Notification;
 import org.unict.dieei.domain.Ticket;
 import org.unict.dieei.domain.User;
 
+import java.util.List;
+
 public class NotificationDAO {
     private final EntityManager entityManager;
 
@@ -27,6 +29,13 @@ public class NotificationDAO {
         Notification notification = new Notification(message, ticket, recipient);
         entityManager.persist(notification);
         entityManager.getTransaction().commit();
+    }
+
+    public List<Notification> getNotificationsByRecipientId(int userId) {
+        return entityManager.createQuery(
+                        "SELECT n FROM Notification n WHERE n.recipient.id = :userId ORDER BY n.sentDate DESC", Notification.class)
+                .setParameter("userId", userId)
+                .getResultList();
     }
 
 }

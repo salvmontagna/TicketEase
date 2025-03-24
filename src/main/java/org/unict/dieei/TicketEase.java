@@ -3,9 +3,7 @@ package org.unict.dieei;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.EntityManagerFactory;
 import jakarta.persistence.Persistence;
-import org.unict.dieei.domain.Products;
-import org.unict.dieei.domain.Ticket;
-import org.unict.dieei.domain.User;
+import org.unict.dieei.domain.*;
 import org.unict.dieei.persistence.*;
 import org.unict.dieei.service.*;
 
@@ -112,12 +110,12 @@ public class TicketEase {
 
     }
 
-
     private static void clientMenu(User user) {
         while (true) {
             System.out.println("\n===== Menu Cliente =====");
             System.out.println("1. Crea un nuovo ticket");
             System.out.println("2. Visualizza i ticket");
+            System.out.println("3. Visualizza notifiche");
             System.out.println("0. Logout");
             System.out.print("Scelta: ");
 
@@ -126,10 +124,13 @@ public class TicketEase {
 
             switch (scelta) {
                 case 1:
-                    createTicket(user);
+                    ticketCreationPage(user);
                     break;
                 case 2:
                     viewTickets(user);
+                    break;
+                case 3:
+                    showNotifications(user.getId());
                     break;
                 case 0:
                     return;
@@ -144,6 +145,7 @@ public class TicketEase {
             System.out.println("\n===== Menu Amministratore =====");
             System.out.println("1. Assegna un ticket");
             System.out.println("2. Crea un ticket e assegnalo");
+            System.out.println("3. Visualizza storico di un ticket");
             System.out.println("0. Logout");
             System.out.print("Scelta: ");
 
@@ -152,10 +154,13 @@ public class TicketEase {
 
             switch (scelta) {
                 case 1:
-                    assignTicket();
+                    ticketAssignmentPage();
                     break;
                 case 2:
-                    createAndAssignTicket();
+                    creationAndAssignmentTicketPage();
+                    break;
+                case 3:
+                    ticketHistoryPage();
                     break;
                 case 0:
                     return;
@@ -165,7 +170,7 @@ public class TicketEase {
         }
     }
 
-    private static void assignTicket() {
+    private static void ticketAssignmentPage() {
 
         getAllOpenedTickets();
         System.out.print("Inserisci l'ID del ticket da assegnare: ");
@@ -187,6 +192,13 @@ public class TicketEase {
 
     private static void getAllOpenedTickets() {
         List<Ticket> tickets = ticketService.getAllOpenedTickets();
+        for (Ticket ticket : tickets) {
+            System.out.println(ticket + "\n");
+        }
+    }
+
+    private static void getAllTickets(){
+        List<Ticket> tickets = ticketService.getAllTickets();
         for (Ticket ticket : tickets) {
             System.out.println(ticket + "\n");
         }
@@ -216,7 +228,7 @@ public class TicketEase {
         }
     }
 
-    private static void createAndAssignTicket() {
+    private static void creationAndAssignmentTicketPage() {
 
         showAvailableProducts();
 
@@ -258,6 +270,8 @@ public class TicketEase {
             System.out.println("\n===== Menu Tecnico IT =====");
             System.out.println("1. Visualizza i ticket assegnati");
             System.out.println("2. Aggiorna stato di un ticket");
+            System.out.println("3. Visualizza notifiche");
+            System.out.println("4. Visualizza storico di un ticket");
             System.out.println("0. Logout");
             System.out.print("Scelta: ");
 
@@ -269,7 +283,13 @@ public class TicketEase {
                     showAssignedTickets(user.getId());
                     break;
                 case 2:
-                    updateTicketStatus(user);
+                    updateTicketStatusPage(user);
+                    break;
+                case 3:
+                    showNotifications(user.getId());
+                    break;
+                case 4:
+                    ticketHistoryPage();
                     break;
                 case 0:
                     return;
@@ -279,7 +299,7 @@ public class TicketEase {
         }
     }
 
-    private static void createTicket(User user){
+    private static void ticketCreationPage(User user){
         showAvailableProducts();
 
         System.out.println("Digitare il numero del prodotto in cui si è riscontrato il problema: ");
@@ -297,20 +317,24 @@ public class TicketEase {
             System.out.println("Errore nella creazione del ticket.");
     }
 
-    private static void updateTicketStatus(User user) {
+    private static void updateTicketStatusPage(User user) {
 
         showAssignedTickets(user.getId());
 
         System.out.print("Inserisci l'ID del ticket da aggiornare: ");
         int ticketId = scanner.nextInt();
         scanner.nextLine();
+
+        System.out.print("Inserisci una descrizione dell'aggiornamento: ");
+        String statusDescription = scanner.nextLine();
+
         System.out.print("ID del nuovo stato (1. Aperto, 2. In corso, 3. Chiuso): ");
         int statusNumber = scanner.nextInt();
         scanner.nextLine();
 
-        String status = getRealStatus(statusNumber);
+        String status = getTicketStatus(statusNumber);
 
-        ticketStatusService.updateTicketStatus(ticketId, status, user.getId());
+        ticketStatusService.updateTicketStatus(ticketId, status, user.getId(), statusDescription);
     }
 
     private static void showAssignedTickets(int technicianId) {
@@ -320,13 +344,41 @@ public class TicketEase {
         }
     }
 
+    private static void showNotifications(int userId) {
+        List<Notification> notifications = notificationService.getNotifications(userId);
+        for (Notification notification : notifications) {
+            System.out.println(notification);
+        }
+    }
+
     private static void showAvailableProducts() {
         List<Products> products = productsService.getAllProducts();
         System.out.println("Lista Prodotti Disponibili:");
         products.forEach(product -> System.out.println(product.getId() + ": " + product.getProductName()));
     }
 
-    private static String getRealStatus(int statusNumber){
+    private static void ticketHistoryPage() {
+        getAllTickets();
+
+        System.out.print("Inserisci l'ID del ticket per cui vuoi consultarne lo storico: ");
+        int ticketId = scanner.nextInt();
+        scanner.nextLine();
+
+        List<TicketStatus> historyTickets = ticketStatusService.getTicketHistory(ticketId);
+
+        if (historyTickets == null || historyTickets.isEmpty()) {
+            System.out.println("Nessuno storico trovato per il ticket con ID: " + ticketId);
+            return;
+        }
+
+        System.out.println("\n===== Storico stato Ticket ID: " + ticketId + ") =====");
+        for (TicketStatus historyTicket : historyTickets) {
+            System.out.println(historyTicket);
+        }
+    }
+
+
+    private static String getTicketStatus(int statusNumber){
         String status = "";
         switch (statusNumber) {
             case 1:
