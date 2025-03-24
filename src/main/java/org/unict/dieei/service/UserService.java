@@ -18,8 +18,11 @@ public class UserService {
     public User loginUser(String email, String password) {
         User user = findByEmail(email);
         if (user != null && user.getPassword().equals(password)) {
+            System.out.println("\nLogin riuscito! Benvenuto, " + user.getName());
             return user;
         }
+
+        System.out.println("Credenziali errate.");
         return null;
     }
 

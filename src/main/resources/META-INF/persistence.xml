@@ -5,7 +5,7 @@
 
         <properties>
             <!-- Configurazione Database -->
-            <property name="jakarta.persistence.jdbc.driver" value="org.postgresql.Driver"/>
+            <property name="jakarta.persistence.jdbca.driver" value="org.postgresql.Driver"/>
             <property name="jakarta.persistence.jdbc.url" value="jdbc:postgresql://localhost:5432/ticketease"/>
             <property name="jakarta.persistence.jdbc.user" value="postgres"/>
             <property name="jakarta.persistence.jdbc.password" value="postgres"/>
@@ -13,7 +13,6 @@
             <!-- Hibernate Dialect per PostgreSQL -->
             <property name="hibernate.dialect" value="org.hibernate.dialect.PostgreSQLDialect"/>
 
-            <!-- Creazione e aggiornamento schema (puoi cambiare in `update`, `validate`, etc.) -->
             <property name="hibernate.hbm2ddl.auto" value="update"/>
 
             <!-- Logging SQL -->
@@ -30,4 +29,5 @@
 
         </properties>
     </persistence-unit>
+
 </persistence>

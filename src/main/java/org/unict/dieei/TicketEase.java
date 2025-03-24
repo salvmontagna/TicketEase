@@ -67,12 +67,9 @@ public class TicketEase {
 
         User user = userService.loginUser(email, password);
         if (user != null) {
-            System.out.println("\nLogin riuscito! Benvenuto, " + user.getName());
             if(user.getRole() == 0) adminMenu();
             else if(user.getRole() == 1) technicianMenu(user);
             else if(user.getRole() == 2) clientMenu(user);
-        } else {
-            System.out.println("Credenziali errate.");
         }
     }
 
@@ -311,10 +308,7 @@ public class TicketEase {
         System.out.print("Inserisci la descrizione del problema: ");
         String description = scanner.nextLine();
         Ticket ticket = ticketService.createTicket(title, description, user, productId);
-        if (ticket != null)
-            System.out.println("Ticket creato con successo!");
-        else
-            System.out.println("Errore nella creazione del ticket.");
+
     }
 
     private static void updateTicketStatusPage(User user) {

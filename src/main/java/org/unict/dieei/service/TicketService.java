@@ -40,6 +40,7 @@ public class TicketService {
         ticket.setProduct(product);
 
         try {
+            System.out.println("Ticket creato con successo!");
             return ticketDAO.saveTicket(ticket);
         } catch (Exception e) {
             System.out.println("Errore durante la creazione del ticket: " + e.getMessage());
