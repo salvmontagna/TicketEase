@@ -22,11 +22,6 @@
             <property name="hibernate.highlight_sql" value="false"/>
             <property name="hibernate.generate_statistics" value="false"/>
 
-
-            <!-- Caching (opzionale) -->
-            <property name="hibernate.cache.use_second_level_cache" value="false"/>
-            <property name="hibernate.cache.use_query_cache" value="false"/>
-
         </properties>
     </persistence-unit>
 
