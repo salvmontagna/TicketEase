@@ -37,7 +37,23 @@ class UserRegisterTest extends BaseTest {
 
         userService.registerUser("SalvatoreMontagna", "o46001695@studium.unict.it", "securePass", 0, "MNTGNN65H15C351A", "chiaveSbagliata");
 
-        User user = userDAO.findByEmail("admin.rossi@example.com");
+        User user = userDAO.findByEmail("o46001695@studium.unict.it");
         assertNull(user);
+    }
+
+    @Test
+    void testRegisterUser_SuccessAuthorizedForAdmin() {
+
+        UserDAO userDAO = new UserDAO(em);
+        AuthorizationDAO authorizationDAO = new AuthorizationDAO(em);
+
+        AuthorizationService authorizationService = new AuthorizationService(authorizationDAO);
+
+        UserService userService = new UserService(userDAO, authorizationService);
+
+        userService.registerUser("SalvatoreMontagna", "o46001695@studium.unict.it", "securePass", 0, "MNTSVT97T30I199U", "loremipsum");
+
+        User user = userDAO.findByEmail("o46001695@studium.unict.it");
+        assertNotNull(user);
     }
 }
